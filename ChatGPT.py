@@ -1,44 +1,34 @@
 import openai
-from openai import OpenAI
 from Vectors.Vectors_Hidden import YOUR_API_KEY
 from qdrant_client import QdrantClient
-from Vectors.Vectors_Hidden import YOUR_API_KEY
 from langchain_openai import OpenAIEmbeddings
+
+# Set API key for OpenAI
 openai.api_key = YOUR_API_KEY
 
-
-oclient = OpenAI(api_key=YOUR_API_KEY)
+# Initialize clients
 embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
 qclient = QdrantClient("localhost", port=6333)
 
-stop = "no"
-
-while 1 == 1:
-
+while True:  # Use 'True' for an infinite loop
     query = input("User: ")
     
-    if query == "stop":
+    if query.lower() == "stop":  # Added lower() to handle different case inputs
         break
 
     embedded_query = embeddings_model.embed_query(query)
-    embedded_query[:5]
-
-
+    
     database_response = qclient.search(
         collection_name="test_collection4", query_vector=embedded_query, limit=5
     )
 
-    messages = [ {"role": "system", "content": "You are designed to assist Proctor Students."} ]
+    messages = [{"role": "system", "content": "You are designed to assist Proctor Students."}]
+    
+    messages.append({"role": "user", "content": str(database_response)})
 
-    #print(str(database_response))
-
- 
-    message = (str(query), str(database_response))
-    if message: 
-        messages.append( 
-            {"role": "user", "content": str(database_response)},
-        ) 
-        chat = oclient.chat.completions.create(model="gpt-3.5-turbo", messages=messages) 
+    chat = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", messages=messages
+    )
       
     reply = chat.choices[0].message.content
     print(f"ChatGPT: {reply}")
