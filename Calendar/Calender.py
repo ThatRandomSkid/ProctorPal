@@ -1,6 +1,7 @@
 import requests
 from ics import Calendar
 from Vectors.Vectors_Hidden import webcal_link
+import os
 
 def webcal_to_txt(webcal_link, txt_filename):
     open(txt_filename, 'w').write(str(Calendar(requests.get(webcal_link.replace('webcal://', 'http://')).text)))

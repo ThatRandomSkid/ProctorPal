@@ -2,9 +2,10 @@ import openai
 from Vectors.Vectors_Hidden import YOUR_API_KEY
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
+from openai import OpenAI
 
-# Set API key for OpenAI
-openai.api_key = YOUR_API_KEY
+
+oclient = OpenAI(api_key=YOUR_API_KEY)
 
 # Initialize clients
 embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
@@ -26,7 +27,7 @@ while True:  # Use 'True' for an infinite loop
     
     messages.append({"role": "user", "content": str(database_response)})
 
-    chat = openai.ChatCompletion.create(
+    chat = oclient.chat.completions.create(
         model="gpt-3.5-turbo", messages=messages
     )
       
