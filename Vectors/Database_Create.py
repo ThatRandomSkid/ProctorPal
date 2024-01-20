@@ -2,9 +2,9 @@ import openai
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
 from qdrant_client.http.models import PointStruct
-from Vectors_Hidden import Qdrant_API_KEY
+from Hidden import Qdrant_API_KEY
 import numpy as np
-from Vectors_Hidden import YOUR_API_KEY
+from Hidden import YOUR_API_KEY
 from langchain_openai import OpenAIEmbeddings
 import json
 

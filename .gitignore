@@ -11,7 +11,7 @@ __pycache__/
 
 # Distribution / packaging
 GreenBook.rtf 
-/Vectors/Vectors_Hidden.py
+Hidden.py
 .DS_Store
 .Python
 build/

@@ -1,5 +1,6 @@
+import os
 import openai
-from Vectors.Vectors_Hidden import YOUR_API_KEY
+from Hidden import YOUR_API_KEY
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from openai import OpenAI
@@ -26,15 +27,14 @@ while True:  # Use 'True' for an infinite loop
     database_response = qclient.search(
         collection_name="test_collection4", query_vector=embedded_query, limit=5
     )
+
+
     
     def filtering(response):
         split_response = str(response).split(":")
         split_response = str(split_response[1]).split("}")
         print(str(i+1)+".", split_response, "\n")
         return split_response[0].replace("\n", "")
-        
-    
-
 
 
     for i in range(5):
@@ -44,7 +44,7 @@ while True:  # Use 'True' for an infinite loop
     messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy."}]
     
     messages.append({"role": "user", "content": str(filtered)})
-    messages.append({"role": "user", "content": "Here is the chat history: " + str(history) + " Refer to this infromation is the user asks follow up questions."})
+    messages.append({"role": "user", "content": "Here is the chat history: " + str(history) + " Refer to this information is the user asks follow up questions."})
 
     chat = oclient.chat.completions.create(
         model="gpt-3.5-turbo", messages=messages
