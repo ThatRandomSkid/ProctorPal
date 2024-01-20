@@ -26,17 +26,21 @@ while True:  # Use 'True' for an infinite loop
     def filtering(response):
         split_response = str(response).split(":")
         split_response = str(split_response[1]).split("}")
-        return split_response[0]
+        print(str(i+1)+".", split_response, "\n")
+        return split_response[0].replace("\n", "")
+        
     
     
     filtered = ["1","2","3","4","5"]
 
     for i in range(5):
         filtered[i] = filtering(str(database_response[i]))
-        print(str(i+1)+".", filtered[i], "\n")
+    
 
 
-    messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Do not halucinate responses. Make sure all responses look natural, no Answer: or Query:. DO NOT include information irrelevent to the question, even if it is given to you."}]
+
+
+    messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Do not halucinate responses. Make sure all responses look natural, no Answer: or Query:. DO NOT include information irrelevent to the question, even if it is given to you. Provide a list if you think it would convay the infromation best."}]
     
     messages.append({"role": "user", "content": str(filtered)})
 
