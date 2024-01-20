@@ -11,6 +11,10 @@ oclient = OpenAI(api_key=YOUR_API_KEY)
 embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
 qclient = QdrantClient("localhost", port=6333)
 
+filtered = ["1","2","3","4","5"]
+    
+history = ["1","2","3"]
+
 while True:  # Use 'True' for an infinite loop
     query = input("User: ")
     
@@ -30,19 +34,17 @@ while True:  # Use 'True' for an infinite loop
         return split_response[0].replace("\n", "")
         
     
-    
-    filtered = ["1","2","3","4","5"]
+
+
 
     for i in range(5):
         filtered[i] = filtering(str(database_response[i]))
     
 
-
-
-
-    messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Do not halucinate responses. Make sure all responses look natural, no Answer: or Query:. DO NOT include information irrelevent to the question, even if it is given to you. Provide a list if you think it would convay the infromation best."}]
+    messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy."}]
     
     messages.append({"role": "user", "content": str(filtered)})
+    messages.append({"role": "user", "content": "Here is the chat history: " + str(history) + " Refer to this infromation is the user asks follow up questions."})
 
     chat = oclient.chat.completions.create(
         model="gpt-3.5-turbo", messages=messages
@@ -51,3 +53,14 @@ while True:  # Use 'True' for an infinite loop
     reply = chat.choices[0].message.content
     print(f"ProctorPal: {reply}")
     messages.append({"role": "assistant", "content": reply})
+
+    print(messages)
+
+    for i in range(2):
+        
+        history[0] = ("User input", i+1, "question[s] ago:", query , "Your response", i+1, "question[s] ago:", reply )
+
+        if i < 2:
+            history[i+1] = history[i]
+        else:
+            break
