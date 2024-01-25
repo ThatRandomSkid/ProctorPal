@@ -7,9 +7,10 @@ from langchain_openai import OpenAIEmbeddings
 import json
 
 
+
 client = QdrantClient("localhost", port=6333)
 
 client.create_collection(
-    collection_name="test_collection5",
+    collection_name="test_collection7",
     vectors_config=VectorParams(size=1536, distance=Distance.DOT),
 )
