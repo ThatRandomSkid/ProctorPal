@@ -1,5 +1,5 @@
 import os
-from Hidden import YOUR_API_KEY
+from Vectors.Hidden import YOUR_API_KEY
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from openai import OpenAI
@@ -7,9 +7,10 @@ import json
 import streamlit as st
 import time
 
+"""# ProctorPal"""
 
 # Initialize clients
-embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
+embeddings_model = OpenAIEmbeddings(openai_api_key=(os.getenv("YOUR_API_KEY")))
 oclient = OpenAI(api_key=YOUR_API_KEY)
 qclient = QdrantClient("localhost", port=6333)
 
@@ -25,7 +26,7 @@ while query == '':
 
 # Querys database
 embedded_query = embeddings_model.embed_query(query)
-    
+
 # Get database output
 database_response = qclient.search( 
     collection_name="test_collection4", query_vector=embedded_query, limit=5

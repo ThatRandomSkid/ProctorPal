@@ -2,19 +2,18 @@ import openai
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
 from qdrant_client.http.models import PointStruct
-from Hidden import Qdrant_API_KEY
 import numpy as np
-from Hidden import YOUR_API_KEY
 from langchain_openai import OpenAIEmbeddings
 import json
+import os
 
 client = QdrantClient("localhost", port=6333)
 
-embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
+embeddings_model = OpenAIEmbeddings(openai_api_key=(os.getenv("YOUR_API_KEY")))
 
 n = 0
 
-openai.api_key = YOUR_API_KEY
+openai_api_key = os.getenv("YOUR_API_KEY")
 
 with open('Vectors/handbook_output.txt', 'r') as f:
     text = f.read()
@@ -27,19 +26,16 @@ while(n != len(text2)):
 
     print(n)
     print(text2[n])
-
-    operation_info = client.upsert(
-        collection_name="test_collection4",
-        wait=True,
-        points=[
-            PointStruct(id=(n), vector=embedded_query, payload={"input": text2[n]}),
-        ],
-
-    )
+    
+    url = f"http://localhost:6333/collections/{'test_collection5'}/points"
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "ids": [n],
+        "vectors": [embedded_query],
+        "payload": text2[n]
+    }
 
     n = n + 1
 
-print(operation_info)
-
-
+print(data)
 

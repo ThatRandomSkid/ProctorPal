@@ -1,6 +1,6 @@
 import requests
 from ics import Calendar
-from Hidden import webcal_link
+from Vectors.Hidden import webcal_link
 import os
 
 def webcal_to_txt(webcal_link, txt_filename):
