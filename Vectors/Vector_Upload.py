@@ -13,6 +13,7 @@ YOUR_API_KEY = os.getenv("YOUR_API_KEY")
 
 client = QdrantClient("localhost", port=6333)
 
+OpenAIEmbeddings.model = "text-embedding-3-large"
 embeddings_model = OpenAIEmbeddings(openai_api_key = YOUR_API_KEY)
 
 n = 0
