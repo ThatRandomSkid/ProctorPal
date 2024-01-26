@@ -43,12 +43,16 @@ if "assistant_history" not in st.session_state:
 #textColor="#262730"
 #font="sans serif"
 
-"""# ProctorPal (beta)"""
+st.title("ProctorPal (beta)")
 one, two, three, four, five = st.columns(5)
 
 # Gets beta key form input
 beta_key = st.sidebar.text_input("Your super secret beta tester key:")
-for i in range(37):
+
+# Button allowing user to flag inadaquate responses
+adequacy = st.sidebar.button("Latest response was inadaquate")
+
+for i in range(34):
     st.sidebar.write('')
 st.sidebar.write("If you're intresed in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
@@ -70,23 +74,29 @@ if beta_key == guest_admin_key:
     user = "Guest (admin)"
     admin = True
 
-# Gets user input from site 
-if user == '':
-    query = st.chat_input('')
-if user != '':
-    query = st.chat_input(user + ":")
-
-# Locks out non-authenticated users
+# User authenication
 if beta_key == '':
-    st.write("Please enter beta tester key.")
+    auth_state = None
     query = None
 elif beta_key == linden_key or beta_key == burke_key or beta_key ==  max_key or beta_key == ember_key or beta_key == guest_key:
+    auth_state = True
     pass
 elif beta_key == linden_admin_key or beta_key == guest_admin_key:
+    auth_state = True
     pass
 else:
+    auth_state = False
     query = None
-    st.write("Beta tester key is incorrect. Please try again.")
+    
+# Gets user input from site 
+if auth_state == True :
+    query = st.chat_input(user + ":")
+elif auth_state == None:
+    query = st.chat_input("Please enter beta tester key.")
+    query = None
+elif auth_state == False:
+    query = st.chat_input("Beta tester key is incorrect. Please try again.")
+    query = None
 
 # Holds program until user enters text
 while query ==  None:
@@ -143,8 +153,7 @@ if admin == False:
     f1.close()
 
 # Checks for insufficient data
-if "Insufficient data." in reply:
-    reply.replace("Insufficient data.", '')
+if adequacy == True:
     f2 = open("Unanswered_Questions.txt", "a")
     f2.write("\n" + query)
     f2.close()
