@@ -36,7 +36,6 @@ while(n != len(text2)):
 
     )
 
-
     n = n + 1
 
 
