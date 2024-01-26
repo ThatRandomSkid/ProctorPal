@@ -9,9 +9,12 @@ import time
 from dotenv import load_dotenv
 
 
-# Import OpenAI api key from .env
+# Import hidden data from .env
 load_dotenv()
 YOUR_API_KEY = os.getenv("YOUR_API_KEY")
+beta_key1 = os.getenv("beta_key1")
+beta_key2 = os.getenv("beta_key2")
+beta_key3 = os.getenv("beta_key3")
 
 # Initialize clients
 embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
@@ -23,7 +26,7 @@ filtered = ["1","2","3","4","5"]
 
 
 # Webpage design
-"""# ProctorPal"""
+"""# ProctorPal (beta)"""
 one, two, three, four, five = st.columns(5)
 
 # Gets beta key form input
@@ -37,7 +40,7 @@ query = st.text_input("User: ")
 if beta_key == '':
     st.write("Please enter beta tester key.")
     query = ''
-elif beta_key == "53" or beta_key == "68" or beta_key == "14":
+elif beta_key == beta_key1 or beta_key == beta_key2 or beta_key == beta_key3:
     pass
     st.write("Beta key is correct.")
 else:
