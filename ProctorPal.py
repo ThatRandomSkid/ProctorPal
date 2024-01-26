@@ -8,9 +8,6 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 
-# Webpage design
-"""# ProctorPal"""
-
 # Import OpenAI api key from .env
 load_dotenv()
 YOUR_API_KEY = os.getenv("YOUR_API_KEY")
@@ -23,6 +20,10 @@ qclient = QdrantClient("localhost", port=6333)
 # Initilize lists/variables
 filtered = ["1","2","3","4","5"]
 
+
+# Webpage design
+"""# ProctorPal"""
+
 # Gets user input from site 
 query = st.text_input("User: ")
 
@@ -32,7 +33,6 @@ while query == '':
 
 # Querys database
 embedded_query = embeddings_model.embed_query(query)
-embedded_query[:5]
 
 # Get database output
 database_response = qclient.search( 
@@ -51,13 +51,23 @@ for i in range(5):
     print(str(i+1)+".", filtered[i], "\n")
 
 # Gives ChatGPT api input
-messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: " + query}]
-messages.append({"role": "user", "content": str(filtered)})
+messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: "}]
+messages.append({"role": "user", "content": query})
+messages.append({"role": "system", "content": "Here is some relevant information: " + str(filtered)})
+messages.append({"role": "user", "content": "If you feel you aren't provided the appropriate data to answer a quyestion, add Insufficient data. at the end of your response, but still include the normal response beforehand."})
 
+# Gets ChatGPT api response
 chat = oclient.chat.completions.create(
     model="gpt-3.5-turbo", messages=messages
 )
-
-# Gets ChatGPT api response
 reply = chat.choices[0].message.content
+
+# Checks for inssufficent data
+if "Insufficient data." in reply:
+    reply.replace('"Insufficient data."', '')
+    f = open("ProctorPal/Unanswered_Questions.txt", "a")
+    f.write(query + " \n")
+    f.close()
+
+# Returns ChatGPT response
 st.write(f"ProctorPal: {reply}")
