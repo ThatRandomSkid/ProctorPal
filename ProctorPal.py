@@ -8,6 +8,7 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 
+
 # Import OpenAI api key from .env
 load_dotenv()
 YOUR_API_KEY = os.getenv("YOUR_API_KEY")
@@ -23,13 +24,30 @@ filtered = ["1","2","3","4","5"]
 
 # Webpage design
 """# ProctorPal"""
+one, two, three, four, five = st.columns(5)
+
+# Gets beta key form input
+beta_key = st.sidebar.text_input("Your super secret beta tester key:")
+st.sidebar.write("If you're intresed in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Gets user input from site 
 query = st.text_input("User: ")
 
+# Locks out non-authenticated users
+if beta_key == '':
+    st.write("Please enter beta tester key.")
+    query = ''
+elif beta_key == "53" or beta_key == "68" or beta_key == "14":
+    pass
+    st.write("Beta key is correct.")
+else:
+    query = ''
+    st.write("Beta tester key is incorrect. Please try again.")
+
 # Holds program until user enters text
 while query == '':
     time.sleep(0.1)
+
 
 # Querys database
 embedded_query = embeddings_model.embed_query(query)
@@ -54,7 +72,7 @@ for i in range(5):
 messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: "}]
 messages.append({"role": "user", "content": query})
 messages.append({"role": "system", "content": "Here is some relevant information: " + str(filtered)})
-messages.append({"role": "user", "content": "If you feel you aren't provided the appropriate data to answer a quyestion, add Insufficient data. at the end of your response, but still include the normal response beforehand."})
+messages.append({"role": "user", "content": "If you feel you aren't provided the appropriate data to answer a quyestion, add Insufficient data. at the end of your response, but still include the normal response beforehand. Do not put it in brackets."})
 
 # Gets ChatGPT api response
 chat = oclient.chat.completions.create(
@@ -62,11 +80,11 @@ chat = oclient.chat.completions.create(
 )
 reply = chat.choices[0].message.content
 
-# Checks for inssufficent data
+# Checks for insufficient data
 if "Insufficient data." in reply:
-    reply.replace('"Insufficient data."', '')
-    f = open("ProctorPal/Unanswered_Questions.txt", "a")
-    f.write(query + " \n")
+    reply.replace('Insufficient data.', '')
+    f = open("Unanswered_Questions.txt", "a")
+    f.write("\n" + query)
     f.close()
 
 # Returns ChatGPT response
