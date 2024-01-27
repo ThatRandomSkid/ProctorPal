@@ -50,11 +50,16 @@ one, two, three, four, five = st.columns(5)
 beta_key = st.sidebar.text_input("Your super secret beta tester key:")
 
 # Button allowing user to flag inadaquate responses
-adequacy = st.sidebar.button("Latest response was inadaquate")
+if st.sidebar.button("Latest response was inadequate"):
+    adequacy = False
+else: 
+    adequacy = True
 
-for i in range(34):
+# Provides link to GitHub in the sidebar
+for i in range(31):
     st.sidebar.write('')
-st.sidebar.write("If you're intresed in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
+st.sidebar.write("Developed by Linden Morgan")
+st.sidebar.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Determine user
 if beta_key == linden_key:
@@ -65,7 +70,7 @@ if beta_key == max_key:
     user = "Max"
 if beta_key == ember_key:
     user = "Ember"
-if beta_key == ember_key:
+if beta_key == guest_key:
     user = "Guest"
 if beta_key == linden_admin_key:
     user = "Linden (admin)"
@@ -92,7 +97,7 @@ else:
 if auth_state == True :
     query = st.chat_input(user + ":")
 elif auth_state == None:
-    query = st.chat_input("Please enter beta tester key.")
+    query = st.chat_input("Please enter beta tester key in the feild to the right.")
     query = None
 elif auth_state == False:
     query = st.chat_input("Beta tester key is incorrect. Please try again.")
@@ -118,7 +123,7 @@ embedded_query = embeddings_model.embed_query(str(query))
 
 # Get database output
 database_response = qclient.search( 
-    collection_name="test_collection4", query_vector=embedded_query, limit=5
+    collection_name="test_collection4", query_vector=embedded_query, limit=10
 )
 
 # Filter database response (replace with valid json implimentation eventually)
@@ -133,7 +138,7 @@ for i in range(5):
     print(str(i+1)+".", filtered[i], "\n")
 
 # Gives ChatGPT api input
-messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "do not referance the fact that this data was given to you to the user, pretend like you know it."}]
+messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + " Do not referance the fact that this data was given to you to the user, pretend like you know it."}]
 messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relavant to the user question."})
 
 # Prints API input for easier debugging
@@ -142,12 +147,12 @@ if admin == True:
 
 # Gets ChatGPT api response
 chat = oclient.chat.completions.create(
-    model="gpt-3.5-turbo", messages=messages, max_tokens=420
+    model="gpt-4", messages=messages, max_tokens=512
 )
 reply = chat.choices[0].message.content
 
 # Updates logs
-if admin == False:
+if admin == False and user != "Linden (user)":
     f1 = open("Logs.txt", "a")
     f1.write("\n" + user + ": " + query + "\n" + "ProctorPal: " + reply)
     f1.close()
@@ -155,7 +160,7 @@ if admin == False:
 # Checks for insufficient data
 if adequacy == True:
     f2 = open("Unanswered_Questions.txt", "a")
-    f2.write("\n" + query)
+    f2.write("\n"+query)
     f2.close()
 
 # Logs ChatGPT response in history
