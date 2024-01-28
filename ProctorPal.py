@@ -8,6 +8,10 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 
+# Editable states
+response_num = 7
+gpt_tokens = 512
+gpt_version = 4
 
 # Import hidden data from .env
 load_dotenv()
@@ -27,14 +31,14 @@ oclient = OpenAI(api_key=YOUR_API_KEY)
 qclient = QdrantClient("localhost", port=6333)
 
 # Initilize lists/variables
-filtered = ["1","2","3","4","5"]
+filtered = []
 admin = False
 user = ''
 if "user_history" not in st.session_state:
     st.session_state.user_history = []
 if "assistant_history" not in st.session_state:
     st.session_state.assistant_history = []
-
+adequacy = None
 
 # Webpage design
 #primaryColor="#F63366"
@@ -44,16 +48,19 @@ if "assistant_history" not in st.session_state:
 #font="sans serif"
 
 st.title("ProctorPal (beta)")
-one, two, three, four, five = st.columns(5)
+one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve = st.columns(12)
+sidebar_one, sidebar_two, sidebar_three, sidebar_four, sidebar_five = st.sidebar.columns(5)
 
 # Gets beta key form input
 beta_key = st.sidebar.text_input("Your super secret beta tester key:")
 
-# Button allowing user to flag inadaquate responses
-if st.sidebar.button("Latest response was inadequate"):
-    adequacy = False
-else: 
-    adequacy = True
+# Buttons allowing user rate responses
+with sidebar_four:
+    if st.button("👍"):
+        adequacy = True
+with sidebar_five:
+    if st.button("👎 "): 
+        adequacy = False
 
 # Provides link to GitHub in the sidebar
 for i in range(31):
@@ -97,7 +104,7 @@ else:
 if auth_state == True :
     query = st.chat_input(user + ":")
 elif auth_state == None:
-    query = st.chat_input("Please enter beta tester key in the feild to the right.")
+    query = st.chat_input("Please enter beta tester key in the feild to the left.")
     query = None
 elif auth_state == False:
     query = st.chat_input("Beta tester key is incorrect. Please try again.")
@@ -123,7 +130,7 @@ embedded_query = embeddings_model.embed_query(str(query))
 
 # Get database output
 database_response = qclient.search( 
-    collection_name="test_collection4", query_vector=embedded_query, limit=10
+    collection_name="test_collection4", query_vector=embedded_query, limit=response_num
 )
 
 # Filter database response (replace with valid json implimentation eventually)
@@ -133,21 +140,26 @@ def filtering(response):
     print(str(i+1)+".", split_response, "\n")
     return split_response[0].replace("\n", "")
 
-for i in range(5):
-    filtered[i] = filtering(str(database_response[i]))
-    print(str(i+1)+".", filtered[i], "\n")
+for i in range(response_num):
+    filtered.append(filtering(str(database_response[i])))
 
 # Gives ChatGPT api input
-messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + " Do not referance the fact that this data was given to you to the user, pretend like you know it."}]
+messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "Do not referance the fact that this data was given to you to the user, pretend like you know it."}]
 messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relavant to the user question."})
 
 # Prints API input for easier debugging
 if admin == True:
-    st.write(messages)
+    st.write(str(filtered))
+
+# Sets ChatGPT model
+if gpt_version == 3.5:
+    gpt_version = "gpt-3.5-turbo"
+elif gpt_version == 4:
+    gpt_version = "gpt-4"
 
 # Gets ChatGPT api response
 chat = oclient.chat.completions.create(
-    model="gpt-4", messages=messages, max_tokens=512
+    model=gpt_version, messages=messages, max_tokens=gpt_tokens
 )
 reply = chat.choices[0].message.content
 
