@@ -38,7 +38,8 @@ if "user_history" not in st.session_state:
     st.session_state.user_history = []
 if "assistant_history" not in st.session_state:
     st.session_state.assistant_history = []
-adequacy = None
+if "adequacy" not in st.session_state:
+    st.session_state.adequacy = None
 
 # Webpage design
 #primaryColor="#F63366"
@@ -53,14 +54,6 @@ sidebar_one, sidebar_two, sidebar_three, sidebar_four, sidebar_five = st.sidebar
 
 # Gets beta key form input
 beta_key = st.sidebar.text_input("Your super secret beta tester key:")
-
-# Buttons allowing user rate responses
-with sidebar_four:
-    if st.button("👍"):
-        adequacy = True
-with sidebar_five:
-    if st.button("👎 "): 
-        adequacy = False
 
 # Provides link to GitHub in the sidebar
 for i in range(31):
@@ -166,14 +159,8 @@ reply = chat.choices[0].message.content
 # Updates logs
 if admin == False and user != "Linden (user)":
     f1 = open("Logs.txt", "a")
-    f1.write("\n" + user + ": " + query + "\n" + "ProctorPal: " + reply)
+    f1.write("\n\n" + user + ": " + query + "\n" + "ProctorPal: " + reply)
     f1.close()
-
-# Checks for insufficient data
-if adequacy == True:
-    f2 = open("Unanswered_Questions.txt", "a")
-    f2.write("\n"+query)
-    f2.close()
 
 # Logs ChatGPT response in history
 st.session_state.assistant_history.append(reply)
@@ -181,3 +168,14 @@ st.session_state.assistant_history.append(reply)
 # Prints ChatGPT response
 with st.chat_message("assistant"):
     st.write(st.session_state.assistant_history[-1])
+
+# Buttons allowing user rate responses
+if st.button("Response was inadequate"): 
+    st.session_state.adequacy = False
+
+# Checks for insufficient data
+if st.session_state.adequacy is False:
+    f2 = open("Unanswered_Questions.txt", "a")
+    f2.write("\n\n"+ st.session_state.assistant_history[-1])
+    f2.close()
+    st.session_state.adequacy = None
