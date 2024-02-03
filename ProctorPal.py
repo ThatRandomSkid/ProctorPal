@@ -1,9 +1,7 @@
 import os
-import openai
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from openai import OpenAI
-import json
 import streamlit as st
 import time
 from dotenv import load_dotenv
@@ -11,11 +9,11 @@ from dotenv import load_dotenv
 # Editable states
 response_num = 7
 gpt_tokens = 512
-gpt_version = 4
+gpt_version = 3.5
 
 # Import hidden data from .env
 load_dotenv()
-YOUR_API_KEY = os.getenv("YOUR_API_KEY")
+YOUR_API_KEY = os.getenv("OPENAI_API_KEY")
 linden_key = os.getenv("linden_key")
 burke_key = os.getenv("burke_key")
 max_key = os.getenv("max_key")
@@ -26,9 +24,9 @@ guest_admin_key = os.getenv("guest_admin_key")
 
 # Initialize clients
 OpenAIEmbeddings.model = "text-embedding-3-large"
-embeddings_model = OpenAIEmbeddings(openai_api_key=YOUR_API_KEY)
 oclient = OpenAI(api_key=YOUR_API_KEY)
 qclient = QdrantClient("localhost", port=6333)
+embeddings_model = oclient.embeddings.create
 
 # Initilize lists/variables
 filtered = []
@@ -118,12 +116,12 @@ for i in range(len(st.session_state.user_history)):
         with st.chat_message("assistant"):
             st.write(st.session_state.assistant_history[i-1])
 
-# Querys database
-embedded_query = embeddings_model.embed_query(str(query))
+# Embeds database querys 
+embedded_query = embeddings_model(input = [query], model="text-embedding-3-large").data[0].embedding
 
 # Get database output
 database_response = qclient.search( 
-    collection_name="test_collection4", query_vector=embedded_query, limit=response_num
+    collection_name="test_collection11", query_vector=embedded_query, limit=response_num
 )
 
 # Filter database response (replace with valid json implimentation eventually)
@@ -146,9 +144,9 @@ if admin == True:
 
 # Sets ChatGPT model
 if gpt_version == 3.5:
-    gpt_version = "gpt-3.5-turbo"
+    gpt_version = "gpt-3.5-turbo-0125"
 elif gpt_version == 4:
-    gpt_version = "gpt-4"
+    gpt_version = "gpt-4-turbo-preview"
 
 # Gets ChatGPT api response
 chat = oclient.chat.completions.create(
