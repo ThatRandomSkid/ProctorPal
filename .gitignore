@@ -10,6 +10,7 @@ __pycache__/
 
 
 # Distribution / packaging
+Accounts.json
 Logs.txt
 .env
 Hidden.py
