@@ -33,12 +33,9 @@ embeddings_model = oclient.embeddings.create
 filtered = []
 admin = False
 user = ''
-if "user_history" not in st.session_state:
-    st.session_state.user_history = []
-if "assistant_history" not in st.session_state:
-    st.session_state.assistant_history = []
 if "adequacy" not in st.session_state:
     st.session_state.adequacy = None
+selected_chat = 1
 
 
 # Webpage design
@@ -53,19 +50,16 @@ one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve = st.c
 sidebar_one, sidebar_two, sidebar_three, sidebar_four, sidebar_five = st.sidebar.columns(5)
 history_tab, beta_tab, sign_up_tab, login_tab, about_tab = st.sidebar.tabs(["Chat History","Beta","Sign Up", "Login", "About"])
 
-# Gets beta key form input
-beta_key = beta_tab.text_input("Your super secret beta tester key:")
-
 # Account create
 new_username = sign_up_tab.text_input("Username:")
-new_password = sign_up_tab.text_input("Password:")
+new_password = sign_up_tab.text_input("Password:", type="password")
 
 if sign_up_tab.button("Create account"):
-    open("Accounts.json", 'w').write(json.dumps(({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 0}}), indent=4))
+    open("Accounts.json", 'w').write(json.dumps(({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 0, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}}), indent=4))
 
 # Login
 username = login_tab.text_input("Username: ")
-password = login_tab.text_input("Password: ")
+password = login_tab.text_input("Password: ", type="password")
 
 if login_tab.button("Login"):
     data = json.load(open("Accounts.json", 'r'))
@@ -82,6 +76,9 @@ if login_tab.button("Login"):
 # Provides link to GitHub in the sidebar
 about_tab.write("Developed by Linden Morgan")
 about_tab.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
+
+# Gets beta key form input
+beta_key = beta_tab.text_input("Your super secret beta tester key:", type="password")
 
 # Determine user
 if beta_key == linden_key:
@@ -115,38 +112,11 @@ else:
     auth_state = False
     query = None
 
-# Gets chat history from Accounts file
-data = json.load("Accounts.json")
-chats = data[username]["Number of chats"]
-
-if history_tab.button("New Chat"):
-    chats = chats + 1
-
-# Sets session states for historic chats
-for i in range(chats-1):
-    if f"user_history{i}" not in st.session_state:
-        st.session_state.user_history = [data[username]["Chat History"][i]["user_history"]]
-    if f"assistant_history{i}" not in st.session_state:
-        st.session_state.assistant_history = [data[username]["Chat History"][i]["assistant_history"]]
-
-
-# Displays chat history
-for i in range(chats):
-    if history_tab.button(f"Chat {chats}"): # Replace with gpt-3.5 generated chat names
-        for i in range(len(st.session_state.user_history)):
-            with st.chat_message("user"):
-                st.write(st.session_state.user_history[i])
-            if len(st.session_state.assistant_history) != 0 and i < len(st.session_state.assistant_history):
-                with st.chat_message("assistant"):
-                    st.write(st.session_state.assistant_history[i-1])
-        
-        
-
 # Gets user input from site 
 if auth_state == True :
     query = st.chat_input(user + ":")
 elif auth_state == None:
-    query = st.chat_input("Please enter beta tester key in the feild to the left.")
+    query = st.chat_input("Please enter beta tester key in the field to the left.")
     query = None
 elif auth_state == False:
     query = st.chat_input("Beta tester key is incorrect. Please try again.")
@@ -156,16 +126,42 @@ elif auth_state == False:
 while query ==  None:
     time.sleep(0.1)
 
+# Gets chat history from Accounts file
+data = json.load(open("Accounts.json", 'r'))
+chats = data[username]["Number of chats"]
+
+# Button that creates new chats
+if history_tab.button("New Chat"):
+    chats = chats + 1
+    data[username]['Number of chats'] = chats 
+    json.dumps(data[username]['Number of chats'])
+    data[username]['Chat history'][chats] = {"user_history": [], "assistant_history": []}
+    json.dumps(data[username]['Chat history'][chats], indent = 4)
+
+# Creates session states for historic chats
+for i in range(1, chats+1):
+    if f"user_history{i}" not in st.session_state:
+        st.session_state[f"user_history{i}"] = data[username].get(i, {}).get("user_history", [])
+    if f"assistant_history{i}" not in st.session_state:
+        st.session_state[f"assistant_history{i}"] = data[username].get(i, {}).get("assistant_history", [])
+
+# Displays chat history
+for i in range(chats):
+    if history_tab.button(f"Chat {chats}"): # Replace with gpt-3.5 generated chat names
+        selected_chat = i + 1
+
 # Logs user query in history
-st.session_state.user_history.append(query)
+st.session_state[f"user_history{selected_chat}"].append(query)
 
 # Prints chat history
-for i in range(len(st.session_state.user_history)):
+st.write(st.session_state[f"user_history{selected_chat}"])
+st.write(st.session_state[f"assistant_history{selected_chat}"])
+for i in range(len(st.session_state[f"user_history{selected_chat}"])):
     with st.chat_message("user"):
-        st.write(st.session_state.user_history[i])
-    if len(st.session_state.assistant_history) != 0 and i < len(st.session_state.assistant_history):
+        st.write(st.session_state[f"user_history{selected_chat}"][i])
+    if len([f"assistant_history{selected_chat}"]) != 0 and i < len([f"assistant_history{selected_chat}"]):
         with st.chat_message("assistant"):
-            st.write(st.session_state.assistant_history[i-1])
+            st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 # Embeds database querys 
 embedded_query = embeddings_model(input = [query], model="text-embedding-3-large").data[0].embedding
@@ -186,8 +182,8 @@ for i in range(response_num):
     filtered.append(filtering(str(database_response[i])))
 
 # Gives ChatGPT api input
-messages = [{"role": "system", "content": "You are an assistent designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "Do not referance the fact that this data was given to you to the user, pretend like you know it."}]
-messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relavant to the user question."})
+messages = [{"role": "system", "content": "You are an assistant designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "Do not reference the fact that this data was given to you to the user, pretend like you know it."}]
+messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relevant to the user question."})
 
 # Prints API input for easier debugging
 if admin == True:
@@ -203,15 +199,14 @@ elif gpt_version == 4:
 chat = oclient.chat.completions.create(
     model=gpt_version, messages=messages, max_tokens=gpt_tokens
 )
-with st.spinner():
-    reply = chat.choices[0].message.content
+reply = chat.choices[0].message.content
 
 # Logs ChatGPT response in history
-st.session_state.assistant_history.append(reply)
+st.session_state[f"assistant_history{selected_chat}"].append(reply)
 
 # Prints ChatGPT response
 with st.chat_message("assistant"):
-    st.write(st.session_state.assistant_history[-1])
+    st.write(st.session_state[f"assistant_history{selected_chat}"][-1])
 
 # Updates logs
 if admin == False and user != "Linden (user)":
