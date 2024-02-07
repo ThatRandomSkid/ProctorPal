@@ -7,6 +7,7 @@ import time
 from dotenv import load_dotenv
 import json
 
+
 # Editable states
 response_num = 7
 gpt_tokens = 512
@@ -15,13 +16,7 @@ gpt_version = 3.5
 # Import hidden data from .env
 load_dotenv()
 YOUR_API_KEY = os.getenv("OPENAI_API_KEY")
-linden_key = os.getenv("linden_key")
-burke_key = os.getenv("burke_key")
-max_key = os.getenv("max_key")
-ember_key = os.getenv("ember_key")
-guest_key = os.getenv("guest_key")
-linden_admin_key = os.getenv("linden_admin_key")
-guest_admin_key = os.getenv("guest_admin_key")
+admin_key = os.getenv("admin_key")
 
 # Initialize clients
 OpenAIEmbeddings.model = "text-embedding-3-large"
@@ -33,107 +28,88 @@ embeddings_model = oclient.embeddings.create
 filtered = []
 admin = False
 user = ''
+new_password = False
+new_password2 = False
 if "adequacy" not in st.session_state:
     st.session_state.adequacy = None
 selected_chat = 1
+accounts_read = open("Accounts.json", 'r')
+data = json.load(accounts_read)
 
 
-# Webpage design
-#primaryColor="#F63366"
-#backgroundColor="#FFFFFF"
-#secondaryBackgroundColor="#F0F2F6"
-#textColor="#262730"
-#font="sans serif"
 
 st.title("ProctorPal (beta)")
 one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve = st.columns(12)
 sidebar_one, sidebar_two, sidebar_three, sidebar_four, sidebar_five = st.sidebar.columns(5)
-history_tab, beta_tab, sign_up_tab, login_tab, about_tab = st.sidebar.tabs(["Chat History","Beta","Sign Up", "Login", "About"])
+history_tab, sign_up_tab, login_tab, about_tab = st.sidebar.tabs(["Chat History","Sign Up", "Login", "About"])
 
 # Account create
 new_username = sign_up_tab.text_input("Username:")
 new_password = sign_up_tab.text_input("Password:", type="password")
-
-data = json.load(open("Accounts.json", 'r'))
-
-if sign_up_tab.button("Create account") and new_username not in data:
-    data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
-    open("Accounts.json", 'w').write(json.dumps(data, indent=4))
+new_password2 = sign_up_tab.text_input("Re-enter password:", type="password")
 
 if new_username in data:
-    st.sidebar.write("Username already taken. Please try again.") 
+    sign_up_tab.write("Username already taken. Please try again.") 
+
+elif new_password != new_password2:
+    sign_up_tab.write("Passwords do not match.")
+
+elif sign_up_tab.button("Create account"):
+    data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
+    open("Accounts.json", 'w').write(json.dumps(data, indent=4))
 
 # Login
 username = login_tab.text_input("Username: ")
 password = login_tab.text_input("Password: ", type="password")
 
 if password != "":
-    data = json.load(open("Accounts.json", 'r'))
     if username in data and password == data[username]["Password"]:
-        st.write(f"Welcome, {username}.")
+        login_tab.write(f"Welcome, {username}.")
         user = username
+
     elif username not in data:
-        st.write(f"No username {username} in system.")
+        login_tab.write(f"No username {username} in system.")
+
     elif password != data[username]["Password"]:
-        st.write("Password is incorrect.")
+        login_tab.write("Password is incorrect.")
+
     else:
-        st.write("Username or password are incorrect.")
+        login_tab.write("Username or password are incorrect.")
+
+# Account settings
+if user != '':
+    with login_tab.expander("Account Settings"):
+        if st.text_input("Beta tester keys go here:") == admin_key:
+            admin = True
 
 # Provides link to GitHub in the sidebar
 about_tab.write("Developed by Linden Morgan")
 about_tab.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
-# Gets beta key form input
-beta_key = beta_tab.text_input("Your super secret beta tester key:", type="password")
-
-# Determine user
-if beta_key == linden_key:
-    user = "Linden (user)"
-if beta_key == burke_key:
-    user = "Burke"
-if beta_key == max_key:
-    user = "Max"
-if beta_key == ember_key:
-    user = "Ember"
-if beta_key == guest_key:
-    user = "Guest"
-if beta_key == linden_admin_key:
-    user = "Linden (admin)"
-    admin = True
-if beta_key == guest_admin_key:
-    user = "Guest (admin)"
-    admin = True
-
-# User authenication
-if beta_key == '':
-    auth_state = None
-    query = None
-elif beta_key == linden_key or beta_key == burke_key or beta_key ==  max_key or beta_key == ember_key or beta_key == guest_key:
-    auth_state = True
-    pass
-elif beta_key == linden_admin_key or beta_key == guest_admin_key:
-    auth_state = True
-    pass
+# Decides what text to display in chat input feild
+if user == "test":
+    display = "Tester:"
+    if admin == True:
+        display == "Tester (admin)"
+if admin == True:
+    display = f"{user} (admin):"
+elif user != '':
+    display = user
 else:
-    auth_state = False
-    query = None
+    display = "Ask a question here:"
 
 # Gets user input from site 
-if auth_state == True :
-    query = st.chat_input(user + ":")
-elif auth_state == None:
-    query = st.chat_input("Please enter beta tester key in the field to the left.")
-    query = None
-elif auth_state == False:
-    query = st.chat_input("Beta tester key is incorrect. Please try again.")
-    query = None
+query = st.chat_input(display)
 
 # Holds program until user enters text
 while query ==  None:
     time.sleep(0.1)
 
-# Gets chat history from Accounts file
-data = json.load(open("Accounts.json", 'r'))
+# Provides guest account if not logged in 
+if user == '':
+    username = "Guest"
+
+# Gets number of chats from accounts file
 chats = data[username]["Number of chats"]
 
 # Button that creates new chats
@@ -147,9 +123,9 @@ if history_tab.button("New Chat"):
 # Creates session states for historic chats
 for i in range(1, chats+1):
     if f"user_history{i}" not in st.session_state:
-        st.session_state[f"user_history{i}"] = data[username].get(i, {}).get("user_history", [])
+        st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
     if f"assistant_history{i}" not in st.session_state:
-        st.session_state[f"assistant_history{i}"] = data[username].get(i, {}).get("assistant_history", [])
+        st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
 
 # Displays chat history
 for i in range(chats):
@@ -160,17 +136,20 @@ for i in range(chats):
 st.session_state[f"user_history{selected_chat}"].append(query)
 
 # Prints chat history
+if admin == True:
+    st.write(st.session_state[f"user_history{selected_chat}"])
+    st.write(st.session_state[f"assistant_history{selected_chat}"])
+
 for i in range(len(st.session_state[f"user_history{selected_chat}"])):
     with st.chat_message("user"):
         st.write(st.session_state[f"user_history{selected_chat}"][i])
-    if i < len(st.session_state[f"assistant_history{selected_chat}"]) and len(st.session_state[f"assistant_history{selected_chat}"]) != 0:
+    if i < len(st.session_state[f"assistant_history{selected_chat}"]):
             with st.chat_message("assistant"):
-                st.write(st.session_state[f"assistant_history{selected_chat}"][i-1])
+                st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 
 
-
-# Embeds database querys 
+# Converts database query to vector 
 embedded_query = embeddings_model(input = [query], model="text-embedding-3-large").data[0].embedding
 
 # Get database output
@@ -203,22 +182,30 @@ elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
 # Gets ChatGPT api response
-chat = oclient.chat.completions.create(
-    model=gpt_version, messages=messages, max_tokens=gpt_tokens
-)
-reply = chat.choices[0].message.content
+with st.spinner("Thinking..."):
+    chat = oclient.chat.completions.create(
+        model=gpt_version, messages=messages, max_tokens=gpt_tokens
+    )
+    reply = chat.choices[0].message.content
+
+# Prints ChatGPT response
+with st.chat_message("assistant"): 
+    st.write(reply)
 
 # Logs ChatGPT response in history
 st.session_state[f"assistant_history{selected_chat}"].append(reply)
 
-# Prints ChatGPT response
-with st.chat_message("assistant"):
-    st.write(st.session_state[f"assistant_history{selected_chat}"][-1])
-    st.write(len((st.session_state[f"assistant_history{selected_chat}"])))
+# Logs chat in history section of account file
+if admin == True:
+    st.write(data[username]['Chat history'][str(selected_chat)])
 
+data[username]['Chat history'][str(selected_chat)]['user_history'] = st.session_state[f"user_history{selected_chat}"] 
+data[username]['Chat history'][str(selected_chat)]['assistant_history'] = st.session_state[f"assistant_history{selected_chat}"]
+json.dumps(data[username]['Chat history'][str(selected_chat)]['user_history'], indent = 4)
+json.dumps(data[username]['Chat history'][str(selected_chat)]['assistant_history'], indent = 4)
 
 # Updates logs
-if admin == False and user != "Linden (user)":
+if admin == False and user != "Linden Morgan" or "test":
     f1 = open("Logs.txt", "a")
     f1.write("\n\n" + user + ": " + query + "\n" + "ProctorPal: " + reply)
     f1.close()
