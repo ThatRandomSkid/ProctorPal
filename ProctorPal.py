@@ -11,7 +11,7 @@ import json
 # Editable states
 response_num = 7
 gpt_tokens = 512
-gpt_version = 3.5
+gpt_version = 4
 
 # Import hidden data from .env
 load_dotenv()
@@ -51,12 +51,17 @@ new_password2 = sign_up_tab.text_input("Re-enter password:", type="password")
 if new_username in data:
     sign_up_tab.write("Username already taken. Please try again.") 
 
-elif new_password != new_password2:
+elif new_password != new_password2 and new_password != "" and new_password2 != "":
     sign_up_tab.write("Passwords do not match.")
 
-elif sign_up_tab.button("Create account"):
-    data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
-    open("Accounts.json", 'w').write(json.dumps(data, indent=4))
+elif new_password and new_password2 and new_username != "": 
+    if sign_up_tab.button("Create account"):
+        data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
+        open("Accounts.json", 'w').write(json.dumps(data, indent=4))
+
+# Provides guest account if not logged in 
+if user == '':
+    username = "Guest"
 
 # Login
 username = login_tab.text_input("Username: ")
@@ -64,8 +69,21 @@ password = login_tab.text_input("Password: ", type="password")
 
 if password != "":
     if username in data and password == data[username]["Password"]:
-        login_tab.write(f"Welcome, {username}.")
         user = username
+        if username == "test":  # Makes testing account correspond to Tester as a user 
+            user = "Tester"
+        # Sets a welecome message
+        if user != '':
+            if data[username]["Number of chats"] == 1: 
+                welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left."
+        elif username == "Guest":
+                welcome_message = f"Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left."
+        else:
+            welcome_message = f"Welcome, {username}!"
+
+        if username != "Guest":
+            with st.chat_message("assistant"):
+                st.write(welcome_message)
 
     elif username not in data:
         login_tab.write(f"No username {username} in system.")
@@ -87,14 +105,10 @@ about_tab.write("Developed by Linden Morgan")
 about_tab.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Decides what text to display in chat input feild
-if user == "test":
-    display = "Tester:"
-    if admin == True:
-        display == "Tester (admin)"
 if admin == True:
     display = f"{user} (admin):"
 elif user != '':
-    display = user
+    display = user + ":"
 else:
     display = "Ask a question here:"
 
@@ -108,6 +122,7 @@ while query ==  None:
 # Provides guest account if not logged in 
 if user == '':
     username = "Guest"
+
 
 # Gets number of chats from accounts file
 chats = data[username]["Number of chats"]
@@ -135,12 +150,18 @@ for i in range(chats):
 # Logs user query in history
 st.session_state[f"user_history{selected_chat}"].append(query)
 
-# Prints chat history
+# Prints degbug info if admin flair is active
 if admin == True:
     st.write(st.session_state[f"user_history{selected_chat}"])
     st.write(st.session_state[f"assistant_history{selected_chat}"])
 
-for i in range(len(st.session_state[f"user_history{selected_chat}"])):
+# Print welcome message for guest user 
+    if username == "Guest":
+        with st.chat_message("assistant"):
+            st.write(welcome_message)
+
+# Prints chat
+for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
     with st.chat_message("user"):
         st.write(st.session_state[f"user_history{selected_chat}"][i])
     if i < len(st.session_state[f"assistant_history{selected_chat}"]):
@@ -182,27 +203,31 @@ elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
 # Gets ChatGPT api response
-with st.spinner("Thinking..."):
-    chat = oclient.chat.completions.create(
-        model=gpt_version, messages=messages, max_tokens=gpt_tokens
-    )
-    reply = chat.choices[0].message.content
-
-# Prints ChatGPT response
 with st.chat_message("assistant"): 
-    st.write(reply)
+    with st.spinner("Thinking..."):
+        chat = oclient.chat.completions.create(
+        model=gpt_version, messages=messages, max_tokens=gpt_tokens
+        )
+        reply = chat.choices[0].message.content
+        st.write(reply) # Prints ChatGPT response
 
 # Logs ChatGPT response in history
 st.session_state[f"assistant_history{selected_chat}"].append(reply)
 
+# Logs chat history in the accounts file
+if username != "Guest" or "test":
+    user_history = st.session_state[f"user_history{selected_chat}"][-1]
+    assistant_history = st.session_state[f"assistant_history{selected_chat}"][-1]
+
+data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
+data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
+
+with open("Accounts.json", 'w') as accounts_file:
+    json.dump(data, accounts_file, indent=4)
+
 # Logs chat in history section of account file
 if admin == True:
     st.write(data[username]['Chat history'][str(selected_chat)])
-
-data[username]['Chat history'][str(selected_chat)]['user_history'] = st.session_state[f"user_history{selected_chat}"] 
-data[username]['Chat history'][str(selected_chat)]['assistant_history'] = st.session_state[f"assistant_history{selected_chat}"]
-json.dumps(data[username]['Chat history'][str(selected_chat)]['user_history'], indent = 4)
-json.dumps(data[username]['Chat history'][str(selected_chat)]['assistant_history'], indent = 4)
 
 # Updates logs
 if admin == False and user != "Linden Morgan" or "test":
