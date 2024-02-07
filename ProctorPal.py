@@ -11,7 +11,7 @@ import json
 # Editable states
 response_num = 7
 gpt_tokens = 512
-gpt_version = 4
+gpt_version = 3.5
 
 # Import hidden data from .env
 load_dotenv()
@@ -28,6 +28,7 @@ embeddings_model = oclient.embeddings.create
 filtered = []
 admin = False
 user = ''
+chats = 1
 new_password = False
 new_password2 = False
 if "adequacy" not in st.session_state:
@@ -72,18 +73,29 @@ if password != "":
         user = username
         if username == "test":  # Makes testing account correspond to Tester as a user 
             user = "Tester"
+
         # Sets a welecome message
         if user != '':
             if data[username]["Number of chats"] == 1: 
-                welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left."
-        elif username == "Guest":
-                welcome_message = f"Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left."
+                welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions."
         else:
             welcome_message = f"Welcome, {username}!"
 
+        # Prints welcome message
         if username != "Guest":
             with st.chat_message("assistant"):
                 st.write(welcome_message)
+
+        # Gets number of chats from accounts file and increases it by one
+        chats = data[username]["Number of chats"]
+        chats = chats + 1
+        selected_chats = chats 
+
+        # Updates chat logs with a new chat in accounts file and updates number of chats
+        data[username]["Number of chat"] = chats
+        data[username]['Chat history'][str(chats)] = {"user_history": [], "assistant_history": []}
+        with open("Accounts.json", 'w') as accounts_file:
+            json.dump(data, accounts_file, indent=4)
 
     elif username not in data:
         login_tab.write(f"No username {username} in system.")
@@ -123,10 +135,6 @@ while query ==  None:
 if user == '':
     username = "Guest"
 
-
-# Gets number of chats from accounts file
-chats = data[username]["Number of chats"]
-
 # Button that creates new chats
 if history_tab.button("New Chat"):
     chats = chats + 1
@@ -144,8 +152,9 @@ for i in range(1, chats+1):
 
 # Displays chat history
 for i in range(chats):
-    if history_tab.button(f"Chat {chats}"): # Replace with gpt-3.5 generated chat names
-        selected_chat = i + 1
+    chat_number = i + 1
+    if history_tab.button(f"Chat {chat_number}", key=f"chat_button_{chat_number}"):
+        selected_chat = chat_number
 
 # Logs user query in history
 st.session_state[f"user_history{selected_chat}"].append(query)
@@ -156,9 +165,9 @@ if admin == True:
     st.write(st.session_state[f"assistant_history{selected_chat}"])
 
 # Print welcome message for guest user 
-    if username == "Guest":
-        with st.chat_message("assistant"):
-            st.write(welcome_message)
+if username == "Guest":
+    with st.chat_message("assistant"):
+        st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
 
 # Prints chat
 for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
@@ -219,11 +228,11 @@ if username != "Guest" or "test":
     user_history = st.session_state[f"user_history{selected_chat}"][-1]
     assistant_history = st.session_state[f"assistant_history{selected_chat}"][-1]
 
-data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
-data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
+    data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
+    data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
 
-with open("Accounts.json", 'w') as accounts_file:
-    json.dump(data, accounts_file, indent=4)
+    with open("Accounts.json", 'w') as accounts_file:
+        json.dump(data, accounts_file, indent=4)
 
 # Logs chat in history section of account file
 if admin == True:
@@ -232,11 +241,11 @@ if admin == True:
 # Updates logs
 if admin == False and user != "Linden Morgan" or "test":
     f1 = open("Logs.txt", "a")
-    f1.write("\n\n" + user + ": " + query + "\n" + "ProctorPal: " + reply)
+    f1.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)
     f1.close()
 
 # Buttons allowing user rate responses
 if st.button("Response was inadequate"): 
     f2 = open("Unanswered_Questions.txt", "a")
-    f2.write("\n\n" + user + ": " + query + "\n" + "ProctorPal: " + reply)
+    f2.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)
     f2.close()
