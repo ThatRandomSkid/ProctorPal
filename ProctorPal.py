@@ -54,8 +54,14 @@ history_tab, beta_tab, sign_up_tab, login_tab, about_tab = st.sidebar.tabs(["Cha
 new_username = sign_up_tab.text_input("Username:")
 new_password = sign_up_tab.text_input("Password:", type="password")
 
-if sign_up_tab.button("Create account"):
-    open("Accounts.json", 'w').write(json.dumps(({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}}), indent=4))
+data = json.load(open("Accounts.json", 'r'))
+
+if sign_up_tab.button("Create account") and new_username not in data:
+    data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
+    open("Accounts.json", 'w').write(json.dumps(data, indent=4))
+
+if new_username in data:
+    st.sidebar.write("Username already taken. Please try again.") 
 
 # Login
 username = login_tab.text_input("Username: ")
@@ -154,17 +160,14 @@ for i in range(chats):
 st.session_state[f"user_history{selected_chat}"].append(query)
 
 # Prints chat history
-st.write(st.session_state[f"user_history{selected_chat}"])
-st.write(st.session_state[f"assistant_history{selected_chat}"])
-
 for i in range(len(st.session_state[f"user_history{selected_chat}"])):
     with st.chat_message("user"):
         st.write(st.session_state[f"user_history{selected_chat}"][i])
     if i < len(st.session_state[f"assistant_history{selected_chat}"]) and len(st.session_state[f"assistant_history{selected_chat}"]) != 0:
             with st.chat_message("assistant"):
                 st.write(st.session_state[f"assistant_history{selected_chat}"][i-1])
-            st.write(len((st.session_state[f"assistant_history{selected_chat}"])))
-            st.write("testing")
+
+
 
 
 # Embeds database querys 
