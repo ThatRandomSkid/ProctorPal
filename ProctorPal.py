@@ -87,15 +87,15 @@ if password != "":
                 st.write(welcome_message)
 
         # Gets number of chats from accounts file and increases it by one
-        chats = data[username]["Number of chats"]
-        chats = chats + 1
-        selected_chats = chats 
+        #chats = data[username]["Number of chats"]
+        #chats = chats + 1
+        #selected_chats = chats 
 
         # Updates chat logs with a new chat in accounts file and updates number of chats
-        data[username]["Number of chat"] = chats
-        data[username]['Chat history'][str(chats)] = {"user_history": [], "assistant_history": []}
-        with open("Accounts.json", 'w') as accounts_file:
-            json.dump(data, accounts_file, indent=4)
+        #data[username]["Number of chat"] = chats
+        #data[username]['Chat history'][str(chats)] = {"user_history": [], "assistant_history": []}
+        #with open("Accounts.json", 'w') as accounts_file:
+            #json.dump(data, accounts_file, indent=4)
 
     elif username not in data:
         login_tab.write(f"No username {username} in system.")
@@ -127,21 +127,27 @@ else:
 # Gets user input from site 
 query = st.chat_input(display)
 
-# Holds program until user enters text
-while query ==  None:
-    time.sleep(0.1)
-
 # Provides guest account if not logged in 
 if user == '':
     username = "Guest"
-
+    
 # Button that creates new chats
-if history_tab.button("New Chat"):
-    chats = chats + 1
-    data[username]['Number of chats'] = chats 
-    json.dumps(data[username]['Number of chats'])
-    data[username]['Chat history'][chats] = {"user_history": [], "assistant_history": []}
-    json.dumps(data[username]['Chat history'][chats], indent = 4)
+if username != "Guest": 
+    chats = data[username]["Number of chats"] # Finds number of chats in accounts file
+
+    if history_tab.button("New Chat"): 
+        chats = chats + 1
+        data[username]['Number of chats'] = chats 
+        json.dumps(data[username]['Number of chats'])
+        data[username]['Chat history'][chats].append({"user_history": [], "assistant_history": []})
+        json.dumps(data[username]['Chat history'][chats], indent = 4)
+
+if username == "Guest":
+    history_tab.write("Login to view chat history.")
+
+# Holds program until user enters text
+while query ==  None:
+    time.sleep(0.1)
 
 # Creates session states for historic chats
 for i in range(1, chats+1):
@@ -211,25 +217,30 @@ if gpt_version == 3.5:
 elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
-# Gets ChatGPT api response
+# Gets/Prints ChatGPT api response
 with st.chat_message("assistant"): 
     with st.spinner("Thinking..."):
         chat = oclient.chat.completions.create(
-        model=gpt_version, messages=messages, max_tokens=gpt_tokens
+        model = gpt_version, messages=messages, max_tokens=gpt_tokens
         )
         reply = chat.choices[0].message.content
         st.write(reply) # Prints ChatGPT response
+
+# Buttons allowing user rate responses
+if st.button("Response was inadequate"): 
+    with open("Inadequate_Responses.txt", "a") as f2:
+        f2.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)
 
 # Logs ChatGPT response in history
 st.session_state[f"assistant_history{selected_chat}"].append(reply)
 
 # Logs chat history in the accounts file
-if username != "Guest" or "test":
+if username != "Guest" and  username != "test":
     user_history = st.session_state[f"user_history{selected_chat}"][-1]
     assistant_history = st.session_state[f"assistant_history{selected_chat}"][-1]
 
-    data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
-    data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
+    #data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
+    #data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
 
     with open("Accounts.json", 'w') as accounts_file:
         json.dump(data, accounts_file, indent=4)
@@ -239,13 +250,6 @@ if admin == True:
     st.write(data[username]['Chat history'][str(selected_chat)])
 
 # Updates logs
-if admin == False and user != "Linden Morgan" or "test":
-    f1 = open("Logs.txt", "a")
-    f1.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)
-    f1.close()
-
-# Buttons allowing user rate responses
-if st.button("Response was inadequate"): 
-    f2 = open("Unanswered_Questions.txt", "a")
-    f2.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)
-    f2.close()
+if  username != "Linden Morgan" and username != "test" and admin == False:
+    with open("Logs.txt", "a") as f1:
+        f1.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)

@@ -10,6 +10,7 @@ __pycache__/
 
 
 # Distribution / packaging
+Inadequate_Responses.txt
 Accounts.json
 Logs.txt
 .env
