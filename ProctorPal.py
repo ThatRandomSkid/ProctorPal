@@ -27,100 +27,131 @@ embeddings_model = oclient.embeddings.create
 # Initilize lists/variables
 filtered = []
 admin = False
-user = ''
+if "user" not in st.session_state:
+    st.session_state["user"] = ''
 chats = 1
 new_password = False
+if "create_account" not in st.session_state:
+    st.session_state["create_account"] = False
+if "username" not in st.session_state:
+    st.session_state["username"] = ''
+if st.session_state["username"] != '':
+    username = st.session_state["username"]
+username = st.session_state["username"]
 new_password2 = False
-if "adequacy" not in st.session_state:
-    st.session_state.adequacy = None
 selected_chat = 1
 accounts_read = open("Accounts.json", 'r')
 data = json.load(accounts_read)
 
 
 
+# Webage deisgn/setup
 st.title("ProctorPal (beta)")
-one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve = st.columns(12)
-sidebar_one, sidebar_two, sidebar_three, sidebar_four, sidebar_five = st.sidebar.columns(5)
-history_tab, sign_up_tab, login_tab, about_tab = st.sidebar.tabs(["Chat History","Sign Up", "Login", "About"])
-
-# Account create
-new_username = sign_up_tab.text_input("Username:")
-new_password = sign_up_tab.text_input("Password:", type="password")
-new_password2 = sign_up_tab.text_input("Re-enter password:", type="password")
-
-if new_username in data:
-    sign_up_tab.write("Username already taken. Please try again.") 
-
-elif new_password != new_password2 and new_password != "" and new_password2 != "":
-    sign_up_tab.write("Passwords do not match.")
-
-elif new_password and new_password2 and new_username != "": 
-    if sign_up_tab.button("Create account"):
-        data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
-        open("Accounts.json", 'w').write(json.dumps(data, indent=4))
-
-# Provides guest account if not logged in 
-if user == '':
-    username = "Guest"
+one, two, three, four, five = st.sidebar.columns(5)
 
 # Login
-username = login_tab.text_input("Username: ")
-password = login_tab.text_input("Password: ", type="password")
+if st.session_state["user"] == '' and st.session_state["create_account"] == False:
+    st.sidebar.subheader("Login")
+    username = st.sidebar.text_input("Username: ")
+    password = st.sidebar.text_input("Password: ", type="password")
 
-if password != "":
-    if username in data and password == data[username]["Password"]:
-        user = username
-        if username == "test":  # Makes testing account correspond to Tester as a user 
-            user = "Tester"
+    if password != "":
+        if username in data and password == data[username]["Password"]:
+            st.session_state["username"] = username
+            st.session_state["user"] = username
+            if username == "test":  # Makes testing account correspond to Tester as a user 
+                st.session_state["user"] = "Tester"
+            st.rerun()
+            
+        elif username not in data:
+            st.sidebar.write(f"No username {username} in system.")
 
-        # Sets a welecome message
-        if user != '':
-            if data[username]["Number of chats"] == 1: 
-                welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions."
+        elif password != data[username]["Password"]:
+            st.sidebar.write("Password is incorrect.")
+
         else:
-            welcome_message = f"Welcome, {username}!"
+            st.sidebar.write("Username or password are incorrect.")
 
-        # Prints welcome message
-        if username != "Guest":
-            with st.chat_message("assistant"):
-                st.write(welcome_message)
+# Button allowing user to create an account if they don't already have one
+if st.session_state["create_account"] == False:
+    st.sidebar.write("Don't have an account? Create one here:")
+    if st.sidebar.button("Create account"):
+        st.session_state["create_account"] = True
+        if st.session_state["user"] == '':
+            st.rerun()
 
-        # Gets number of chats from accounts file and increases it by one
-        #chats = data[username]["Number of chats"]
-        #chats = chats + 1
-        #selected_chats = chats 
+# Account create
+if st.session_state["create_account"] == True and st.session_state["user"] == '':
+    st.sidebar.subheader("Create Account")
+    new_username = st.sidebar.text_input("Username:")
+    new_password = st.sidebar.text_input("Password:", type="password")
+    new_password2 = st.sidebar.text_input("Re-enter password:", type="password")
 
-        # Updates chat logs with a new chat in accounts file and updates number of chats
-        #data[username]["Number of chat"] = chats
-        #data[username]['Chat history'][str(chats)] = {"user_history": [], "assistant_history": []}
-        #with open("Accounts.json", 'w') as accounts_file:
-            #json.dump(data, accounts_file, indent=4)
+    if new_username in data:
+        st.sidebar.write("Username already taken. Please try again.") 
 
-    elif username not in data:
-        login_tab.write(f"No username {username} in system.")
+    elif new_password != new_password2 and new_password != "" and new_password2 != "":
+        st.sidebar.write("Passwords do not match.")
 
-    elif password != data[username]["Password"]:
-        login_tab.write("Password is incorrect.")
+    elif new_password and new_password2 and new_username != "": 
+        if st.sidebar.button("Create account"):
+            data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
+            open("Accounts.json", 'w').write(json.dumps(data, indent=4))
 
-    else:
-        login_tab.write("Username or password are incorrect.")
+            # Login
+            st.session_state["username"] = new_username
+            password = new_password
 
-# Account settings
-if user != '':
-    with login_tab.expander("Account Settings"):
-        if st.text_input("Beta tester keys go here:") == admin_key:
-            admin = True
+# Sets a welecome message
+if st.session_state["user"] != '':
+    #if data[username]["Number of chats"] == 1: 
+    welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions."
+#else:
+    #welcome_message = f"Welcome, {username}!"
+
+    # Prints welcome message
+    if username != "Guest":
+        with st.chat_message("assistant"):
+            st.write(welcome_message)
+
+# Login button to get back from account creation
+if st.session_state["create_account"] == True:
+    st.sidebar.write("Have an accountt? Login here:")
+    if st.sidebar.button("Login"):
+        st.session_state["create_account"] = False
+        if st.session_state["user"] == '':
+            st.rerun()
+
+# Logged in display
+if st.session_state["user"] != '':
+    st.session_state["create_account"] = None
+    st.sidebar.subheader(f"Currently logged in as {username}.")
+    # Account settings
+    if st.session_state["user"] != '':
+        with st.sidebar.expander("Account Settings"):
+            if st.text_input("Beta tester keys go here:") == admin_key:
+                admin = True
+    if st.sidebar.button("Log out"):
+        st.session_state["user"] = ''
+        st.rerun()
+
+
+# Provides guest account if not logged in 
+if st.session_state["user"] == '':
+    username = "Guest"
 
 # Provides link to GitHub in the sidebar
-about_tab.write("Developed by Linden Morgan")
-about_tab.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
+for i in range(20):
+    st.sidebar.write('')
+
+st.sidebar.write("Developed by Linden Morgan")
+st.sidebar.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Decides what text to display in chat input feild
 if admin == True:
-    display = f"{user} (admin):"
-elif user != '':
-    display = user + ":"
+    display = st.session_state["user"] + " (admin):"
+elif st.session_state["user"] != '':
+    display = st.session_state["user"] + ":"
 else:
     display = "Ask a question here:"
 
@@ -128,22 +159,8 @@ else:
 query = st.chat_input(display)
 
 # Provides guest account if not logged in 
-if user == '':
+if st.session_state["user"] == '':
     username = "Guest"
-    
-# Button that creates new chats
-if username != "Guest": 
-    chats = data[username]["Number of chats"] # Finds number of chats in accounts file
-
-    if history_tab.button("New Chat"): 
-        chats = chats + 1
-        data[username]['Number of chats'] = chats 
-        json.dumps(data[username]['Number of chats'])
-        data[username]['Chat history'][chats].append({"user_history": [], "assistant_history": []})
-        json.dumps(data[username]['Chat history'][chats], indent = 4)
-
-if username == "Guest":
-    history_tab.write("Login to view chat history.")
 
 # Holds program until user enters text
 while query ==  None:
@@ -155,12 +172,6 @@ for i in range(1, chats+1):
         st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
     if f"assistant_history{i}" not in st.session_state:
         st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
-
-# Displays chat history
-for i in range(chats):
-    chat_number = i + 1
-    if history_tab.button(f"Chat {chat_number}", key=f"chat_button_{chat_number}"):
-        selected_chat = chat_number
 
 # Logs user query in history
 st.session_state[f"user_history{selected_chat}"].append(query)
@@ -226,11 +237,6 @@ with st.chat_message("assistant"):
         reply = chat.choices[0].message.content
         st.write(reply) # Prints ChatGPT response
 
-# Buttons allowing user rate responses
-if st.button("Response was inadequate"): 
-    with open("Inadequate_Responses.txt", "a") as f2:
-        f2.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)
-
 # Logs ChatGPT response in history
 st.session_state[f"assistant_history{selected_chat}"].append(reply)
 
@@ -250,6 +256,6 @@ if admin == True:
     st.write(data[username]['Chat history'][str(selected_chat)])
 
 # Updates logs
-if  username != "Linden Morgan" and username != "test" and admin == False:
+if username != "Linden Morgan" and username != "test" and admin == False:
     with open("Logs.txt", "a") as f1:
         f1.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)

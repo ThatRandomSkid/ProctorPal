@@ -10,6 +10,9 @@ __pycache__/
 
 
 # Distribution / packaging
+.vscode
+settings.json
+launch.json
 Inadequate_Responses.txt
 Accounts.json
 Logs.txt
