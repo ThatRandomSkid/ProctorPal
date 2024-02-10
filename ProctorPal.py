@@ -108,14 +108,14 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
 
             # Login
             st.session_state["username"] = new_username
-            password = new_password
+            st.session_state["user"] = new_username
+            st.session_state["create_account"] = None
+            st.rerun()
 
 # Sets a welecome message
 if st.session_state["user"] != '':
     #if data[username]["Number of chats"] == 1: 
     welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions."
-#else:
-    #welcome_message = f"Welcome, {username}!"
 
     # Prints welcome message
     if username != "Guest":
