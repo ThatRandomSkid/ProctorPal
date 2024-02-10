@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import json
 
 
+
 # Editable states
 response_num = 7
 gpt_tokens = 512
@@ -37,7 +38,8 @@ if "username" not in st.session_state:
     st.session_state["username"] = ''
 if st.session_state["username"] != '':
     username = st.session_state["username"]
-username = st.session_state["username"]
+if "password" not in st.session_state:
+    st.session_state["password"] = ''
 new_password2 = False
 selected_chat = 1
 accounts_read = open("Accounts.json", 'r')
@@ -52,19 +54,25 @@ one, two, three, four, five = st.sidebar.columns(5)
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
     st.sidebar.subheader("Login")
-    username = st.sidebar.text_input("Username: ")
-    password = st.sidebar.text_input("Password: ", type="password")
+
+    # Get username/password input
+    st.session_state["username"] = st.sidebar.text_input("Username: ")
+    st.session_state["password"] = st.sidebar.text_input("Password: ", type="password")
+
+    # Sets username/password for code
+    username = st.session_state["username"]
+    password = st.session_state["password"]
 
     if password != "":
         if username in data and password == data[username]["Password"]:
-            st.session_state["username"] = username
             st.session_state["user"] = username
             if username == "test":  # Makes testing account correspond to Tester as a user 
                 st.session_state["user"] = "Tester"
+            st.session_state["create_account"] = None
             st.rerun()
             
         elif username not in data:
-            st.sidebar.write(f"No username {username} in system.")
+            st.sidebar.write(f'No username "{username}" in system.')
 
         elif password != data[username]["Password"]:
             st.sidebar.write("Password is incorrect.")
@@ -111,41 +119,57 @@ if st.session_state["user"] != '':
 
     # Prints welcome message
     if username != "Guest":
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar = "/Users/lindenmorgan/ProctorPal/Profile_Pictures/ProctorPal.png"): 
             st.write(welcome_message)
 
 # Login button to get back from account creation
-if st.session_state["create_account"] == True:
-    st.sidebar.write("Have an accountt? Login here:")
-    if st.sidebar.button("Login"):
-        st.session_state["create_account"] = False
-        if st.session_state["user"] == '':
-            st.rerun()
+with st.container():
+    if st.session_state["create_account"] == True:
+        st.sidebar.write("Have an account? Login here:")
+        if st.sidebar.button("Login"):
+            st.session_state["create_account"] = False
+            if st.session_state["user"] == '':
+                st.rerun()
 
 # Logged in display
 if st.session_state["user"] != '':
-    st.session_state["create_account"] = None
     st.sidebar.subheader(f"Currently logged in as {username}.")
+
     # Account settings
     if st.session_state["user"] != '':
         with st.sidebar.expander("Account Settings"):
             if st.text_input("Beta tester keys go here:") == admin_key:
                 admin = True
+
+    # Log out button
     if st.sidebar.button("Log out"):
         st.session_state["user"] = ''
+        st.session_state["username"] = ''
+        st.session_state["password"] = ''
+        st.session_state["create_account"] = False
         st.rerun()
+    
+    # Creates session states for historic chats
+    for i in range(1, chats+1):
+        if f"user_history{i}" not in st.session_state:
+            st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
+        if f"assistant_history{i}" not in st.session_state:
+            st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
 
-
-# Provides guest account if not logged in 
-if st.session_state["user"] == '':
-    username = "Guest"
+    # Prints chat
+    for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
+        with st.chat_message("user"):
+            st.write(st.session_state[f"user_history{selected_chat}"][i])
+        if i < len(st.session_state[f"assistant_history{selected_chat}"]):
+                with st.chat_message("assistant", avatar = "/Users/lindenmorgan/ProctorPal/Profile_Pictures/ProctorPal.png"):
+                    st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 # Provides link to GitHub in the sidebar
-for i in range(20):
-    st.sidebar.write('')
-
-st.sidebar.write("Developed by Linden Morgan")
-st.sidebar.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
+with st.container():
+    for i in range(20):
+        st.sidebar.write('')
+    st.sidebar.write("Developed by Linden Morgan")
+    st.sidebar.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Decides what text to display in chat input feild
 if admin == True:
@@ -158,20 +182,15 @@ else:
 # Gets user input from site 
 query = st.chat_input(display)
 
-# Provides guest account if not logged in 
-if st.session_state["user"] == '':
-    username = "Guest"
-
 # Holds program until user enters text
 while query ==  None:
     time.sleep(0.1)
 
-# Creates session states for historic chats
-for i in range(1, chats+1):
-    if f"user_history{i}" not in st.session_state:
-        st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
-    if f"assistant_history{i}" not in st.session_state:
-        st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
+# Sets account to Guest if input is entered without logging in
+if st.session_state["user"] == '':
+    st.session_state["username"] = "Guest"
+    st.session_state["user"] = "Guest"
+    st.rerun()
 
 # Logs user query in history
 st.session_state[f"user_history{selected_chat}"].append(query)
@@ -183,16 +202,8 @@ if admin == True:
 
 # Print welcome message for guest user 
 if username == "Guest":
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar = "/Users/lindenmorgan/ProctorPal/Profile_Pictures/ProctorPal.png"):
         st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
-
-# Prints chat
-for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
-    with st.chat_message("user"):
-        st.write(st.session_state[f"user_history{selected_chat}"][i])
-    if i < len(st.session_state[f"assistant_history{selected_chat}"]):
-            with st.chat_message("assistant"):
-                st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 
 
@@ -229,7 +240,7 @@ elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
 # Gets/Prints ChatGPT api response
-with st.chat_message("assistant"): 
+with st.chat_message("assistant", avatar = "/Users/lindenmorgan/ProctorPal/Profile_Pictures/ProctorPal.png"): 
     with st.spinner("Thinking..."):
         chat = oclient.chat.completions.create(
         model = gpt_version, messages=messages, max_tokens=gpt_tokens
