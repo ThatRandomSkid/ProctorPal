@@ -116,7 +116,7 @@ if st.session_state["user"] != '':
 
     # Prints welcome message
     if username != "Guest":
-        with st.chat_message("assistant", avatar = "/Profile_Pictures/ProctorPal.png"): 
+        with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
             st.write(welcome_message)
 
 # Login button to get back from account creation
@@ -158,7 +158,7 @@ if st.session_state["user"] != '':
         with st.chat_message("user"):
             st.write(st.session_state[f"user_history{selected_chat}"][i])
         if i < len(st.session_state[f"assistant_history{selected_chat}"]):
-                with st.chat_message("assistant", avatar = "/Profile_Pictures/ProctorPal.png"):
+                with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
                     st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 # Provides link to GitHub in the sidebar
@@ -202,7 +202,7 @@ if admin == True:
 
 # Print welcome message for guest user 
 if username == "Guest":
-    with st.chat_message("assistant", avatar = "/Profile_Pictures/ProctorPal.png"):
+    with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
         st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
 
 
@@ -240,7 +240,7 @@ elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
 # Gets/Prints ChatGPT api response
-with st.chat_message("assistant", avatar = "/Profile_Pictures/ProctorPal.png"): 
+with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
     with st.spinner("Thinking..."):
         chat = oclient.chat.completions.create(
         model = gpt_version, messages=messages, max_tokens=gpt_tokens
