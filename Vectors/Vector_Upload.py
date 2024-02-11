@@ -14,7 +14,7 @@ qclient = QdrantClient("localhost", port=6333)
 
 n = 0
 
-with open('Training_Data/handbook_output.txt', 'r') as f:
+with open('~/ProctorPal/Training_Data/handbook_output.txt', 'r') as f:
     text = f.read()
     text2 = text.split(".")
 
@@ -28,7 +28,7 @@ while(n != len(text2)):
     print(text2[n])
     
     operation_info = qclient.upsert(
-        collection_name="test_collection11",
+        collection_name="server_collection1",
         wait=True,
         points=[
             PointStruct(id=(n), vector=embedded_query, payload={"input": text2[n]}),
