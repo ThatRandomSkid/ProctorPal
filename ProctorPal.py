@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 import json
 
 
-
 # Editable states
 response_num = 7
 gpt_tokens = 512
@@ -15,8 +14,8 @@ gpt_version = 3.5
 
 # Import hidden data from .env
 load_dotenv()
-YOUR_API_KEY = os.getenv("OPENAI_API_KEY")
-admin_key = os.getenv("admin_key")
+YOUR_API_KEY = os.environ["OPENAI_API_KEY"]
+admin_key = os.environ["admin_key"]
 
 # Initialize clients
 oclient = OpenAI(api_key=YOUR_API_KEY)

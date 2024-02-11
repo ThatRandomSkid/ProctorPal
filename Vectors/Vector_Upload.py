@@ -8,7 +8,7 @@ context = ""
 
 oclient = OpenAI()
 
-YOUR_API_KEY = os.getenv("OPENAI_API_KEY")
+YOUR_API_KEY = os.environ["OPENAI_API_KEY"]
 
 qclient = QdrantClient("localhost", port=6333)
 
