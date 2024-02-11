@@ -4,16 +4,15 @@ from qdrant_client.http.models import PointStruct
 import os
 from dotenv import load_dotenv
 
+
+load_dotenv()
+os.environ["OPENAI_API_KEY"]
+
 context = ""
-
 oclient = OpenAI()
-
-YOUR_API_KEY = os.environ["OPENAI_API_KEY"]
-
 qclient = QdrantClient("localhost", port=6333)
 
-
-n = 1708
+n = 0
 
 with open('Training_Data/handbook_output.txt', 'r') as f:
     text = f.read()
