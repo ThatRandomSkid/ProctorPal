@@ -14,20 +14,22 @@ qclient = QdrantClient("localhost", port=6333)
 
 file_path = os.path.expanduser('~/ProctorPal/Training_Data/handbook_output.txt')
 
-n = 0
+n = 16
 
 with open(file_path, 'r') as f:
     text = f.read()
     text2 = text.split("\n\n")
 
 while(n != len(text2)):
-    text2[n] = context + text2[n]
-    
-    embedded_query = oclient.embeddings.create(input = [text2[n]], model="text-embedding-3-large").data[0].embedding
-
 
     print(n)
     print(text2[n])
+    if text2[n] == "\n" or text2[n] == "":
+        text2[n] = "ignore"
+
+    text2[n] = context + text2[n]
+    
+    embedded_query = oclient.embeddings.create(input = [text2[n]], model="text-embedding-3-large").data[0].embedding
     
     operation_info = qclient.upsert(
         collection_name="newline_collection1",

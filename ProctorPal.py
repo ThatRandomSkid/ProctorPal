@@ -8,7 +8,7 @@ import json
 
 
 # Editable states
-response_num = 7
+response_num = 3
 gpt_tokens = 512
 gpt_version = 3.5
 
