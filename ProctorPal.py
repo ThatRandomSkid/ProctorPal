@@ -1,6 +1,5 @@
 import os
 from qdrant_client import QdrantClient
-from langchain_openai import OpenAIEmbeddings
 from openai import OpenAI
 import streamlit as st
 import time
@@ -20,7 +19,6 @@ YOUR_API_KEY = os.getenv("OPENAI_API_KEY")
 admin_key = os.getenv("admin_key")
 
 # Initialize clients
-OpenAIEmbeddings.model = "text-embedding-3-large"
 oclient = OpenAI(api_key=YOUR_API_KEY)
 qclient = QdrantClient("localhost", port=6333)
 embeddings_model = oclient.embeddings.create
@@ -194,6 +192,9 @@ if st.session_state["user"] == '':
 
 # Logs user query in history
 st.session_state[f"user_history{selected_chat}"].append(query)
+
+with st.chat_message("user"):
+    st.write(query)
 
 # Prints degbug info if admin flair is active
 if admin == True:
