@@ -10,7 +10,6 @@ __pycache__/
 
 
 # Distribution / packaging
-Profile_Pictures
 .vscode
 settings.json
 launch.json

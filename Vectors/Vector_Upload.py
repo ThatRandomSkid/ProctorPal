@@ -14,7 +14,7 @@ qclient = QdrantClient("localhost", port=6333)
 
 file_path = os.path.expanduser('~/ProctorPal/Training_Data/handbook_output.txt')
 
-n = 16
+n = 0
 
 with open(file_path, 'r') as f:
     text = f.read()
