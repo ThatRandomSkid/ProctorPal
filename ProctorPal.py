@@ -212,7 +212,7 @@ embedded_query = embeddings_model(input = [query], model="text-embedding-3-large
 
 # Get database output
 database_response = qclient.search( 
-    collection_name="test_collection11", query_vector=embedded_query, limit=response_num
+    collection_name="newline_collection1", query_vector=embedded_query, limit=response_num
 )
 
 # Filter database response (replace with valid json implimentation eventually)

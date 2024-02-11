@@ -12,11 +12,13 @@ context = ""
 oclient = OpenAI()
 qclient = QdrantClient("localhost", port=6333)
 
+file_path = os.path.expanduser('~/ProctorPal/Training_Data/handbook_output.txt')
+
 n = 0
 
-with open('~/ProctorPal/Training_Data/handbook_output.txt', 'r') as f:
+with open(file_path, 'r') as f:
     text = f.read()
-    text2 = text.split(".")
+    text2 = text.split("\n\n")
 
 while(n != len(text2)):
     text2[n] = context + text2[n]
@@ -28,7 +30,7 @@ while(n != len(text2)):
     print(text2[n])
     
     operation_info = qclient.upsert(
-        collection_name="server_collection1",
+        collection_name="newline_collection1",
         wait=True,
         points=[
             PointStruct(id=(n), vector=embedded_query, payload={"input": text2[n]}),
@@ -37,5 +39,3 @@ while(n != len(text2)):
     )
 
     n = n + 1
-
-
