@@ -8,7 +8,7 @@ import json
 
 
 # Editable states
-response_num = 8
+response_num = 7
 gpt_tokens = 512
 gpt_version = 3.5
 
@@ -51,7 +51,7 @@ st.title("ProctorPal (beta)")
 one, two, three, four, five = st.sidebar.columns(5)
 
 with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
-    st.write("Hello! I am ProctorPal, a helpful AI assistant deisigned to answer with all manner of questions related to Proctor Academy.")
+    st.write("Hello! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please login or create an account in the field to the left.")
 
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
@@ -153,11 +153,6 @@ if st.session_state["user"] != '':
                 st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
             if f"assistant_history{i}" not in st.session_state:
                 st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
-    
-    # Print welcome message for guest user 
-    if st.session_state["username"] == "Guest":
-        with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
-            st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
         
     # Prints chat
     for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
