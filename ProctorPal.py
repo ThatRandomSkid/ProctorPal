@@ -8,7 +8,7 @@ import json
 
 
 # Editable states
-response_num = 3
+response_num = 8
 gpt_tokens = 512
 gpt_version = 3.5
 
@@ -147,11 +147,17 @@ if st.session_state["user"] != '':
         st.rerun()
     
     # Creates session states for historic chats
-    for i in range(1, chats+1):
-        if f"user_history{i}" not in st.session_state:
-            st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
-        if f"assistant_history{i}" not in st.session_state:
-            st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
+    if username != "Guest" and st.session_state["user"] != "":
+        for i in range(1, chats+1):
+            if f"user_history{i}" not in st.session_state:
+                st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
+            if f"assistant_history{i}" not in st.session_state:
+                st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
+    
+    # Print welcome message for guest user 
+    if st.session_state["username"] == "Guest":
+        with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
+            st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
 
     # Prints chat
     for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
@@ -187,11 +193,19 @@ while query ==  None:
 if st.session_state["user"] == '':
     st.session_state["username"] = "Guest"
     st.session_state["user"] = "Guest"
+    # Creates session states for historic chats
+    if "user_history1" not in st.session_state:
+        st.session_state["user_history1"] = []
+    if "assistant_history1" not in st.session_state:
+        st.session_state["assistant_history1"] = []
+    if "guest_query_1" not in st.session_state:
+        st.session_state["guest_query_1"] = query
     st.rerun()
 
 # Logs user query in history
 st.session_state[f"user_history{selected_chat}"].append(query)
 
+# Writes question user just entered
 with st.chat_message("user"):
     st.write(query)
 
@@ -200,12 +214,11 @@ if admin == True:
     st.write(st.session_state[f"user_history{selected_chat}"])
     st.write(st.session_state[f"assistant_history{selected_chat}"])
 
-# Print welcome message for guest user 
-if username == "Guest":
-    with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
-        st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
-
-
+# Set chat history of ChatGPT input
+if len(st.session_state[f"user_history{selected_chat}"]) > 2: 
+    chat_history = st.session_state[f"user_history{selected_chat}"][-2] + st.session_state[f"assistant_history{selected_chat}"][-2]
+else:
+    chat_history = st.session_state[f"user_history{selected_chat}"] + st.session_state[f"assistant_history{selected_chat}"]
 
 # Converts database query to vector 
 embedded_query = embeddings_model(input = [query], model="text-embedding-3-large").data[0].embedding
@@ -227,7 +240,7 @@ for i in range(response_num):
 
 # Gives ChatGPT api input
 messages = [{"role": "system", "content": "You are an assistant designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "Do not reference the fact that this data was given to you to the user, pretend like you know it."}]
-messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relevant to the user question."})
+messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relevant to the user question. Do not answer questions that are not about Proctor. Here is some background infromation:" + str(chat_history)})
 
 # Prints API input for easier debugging
 if admin == True:
@@ -267,6 +280,6 @@ if admin == True:
     st.write(data[username]['Chat history'][str(selected_chat)])
 
 # Updates logs
-if username != "Linden Morgan" and username != "test" and admin == False:
+if username != "test" and admin == False:
     with open("Logs.txt", "a") as f1:
         f1.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)

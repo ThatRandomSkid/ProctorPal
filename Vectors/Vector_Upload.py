@@ -18,21 +18,19 @@ n = 0
 
 with open(file_path, 'r') as f:
     text = f.read()
-    text2 = text.split("\n\n")
+    text2 = text.split(".")
 
 while(n != len(text2)):
 
     print(n)
     print(text2[n])
-    if text2[n] == "\n" or text2[n] == "":
-        text2[n] = "ignore"
 
     text2[n] = context + text2[n]
     
     embedded_query = oclient.embeddings.create(input = [text2[n]], model="text-embedding-3-large").data[0].embedding
     
     operation_info = qclient.upsert(
-        collection_name="newline_collection1",
+        collection_name="db_collection2",
         wait=True,
         points=[
             PointStruct(id=(n), vector=embedded_query, payload={"input": text2[n]}),
@@ -41,3 +39,4 @@ while(n != len(text2)):
     )
 
     n = n + 1
+
