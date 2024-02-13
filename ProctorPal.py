@@ -25,6 +25,7 @@ embeddings_model = oclient.embeddings.create
 # Initilize lists/variables
 filtered = []
 admin = False
+query = ''
 if "user" not in st.session_state:
     st.session_state["user"] = ''
 chats = 1
@@ -158,7 +159,7 @@ if st.session_state["user"] != '':
     if st.session_state["username"] == "Guest":
         with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
             st.write("Welcome! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please create an account in the feild to the left.")  
-
+        
     # Prints chat
     for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
         with st.chat_message("user"):
@@ -184,6 +185,11 @@ else:
 
 # Gets user input from site 
 query = st.chat_input(display)
+
+# Sets query for guest
+if st.session_state["username"] == "Guest":
+    if not st.session_state["user_history1"]:
+        query = st.session_state["guest_query_1"]
 
 # Holds program until user enters text
 while query ==  None:
@@ -244,7 +250,7 @@ messages.append({"role": "system", "content": "Here is some information: " + str
 
 # Prints API input for easier debugging
 if admin == True:
-    st.write(str(filtered))
+    st.write(str(messages))
 
 # Sets ChatGPT model
 if gpt_version == 3.5:
