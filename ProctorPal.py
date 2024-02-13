@@ -19,7 +19,7 @@ admin_key = os.environ["admin_key"]
 
 # Initialize clients
 oclient = OpenAI(api_key=YOUR_API_KEY)
-qclient = QdrantClient("localhost", port=6333)
+qclient = QdrantClient("172.17.0.2", port=6333)
 embeddings_model = oclient.embeddings.create
 
 # Initilize lists/variables
@@ -46,8 +46,12 @@ data = json.load(accounts_read)
 
 
 # Webage deisgn/setup
+st.set_page_config(page_title='ProctorPal', page_icon = "./Profile_Pictures/ProctorPal.png")
 st.title("ProctorPal (beta)")
 one, two, three, four, five = st.sidebar.columns(5)
+
+with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
+    st.write("Hello! I am ProctorPal, a helpful AI assistant deisigned to answer with all manner of questions related to Proctor Academy.")
 
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
@@ -113,12 +117,7 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
 # Sets a welecome message
 if st.session_state["user"] != '':
     #if data[username]["Number of chats"] == 1: 
-    welcome_message = f"Welcome, {username}! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions."
-
-    # Prints welcome message
-    if username != "Guest":
-        with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
-            st.write(welcome_message)
+    welcome_message = f"Welcome, {username}!"
 
 # Login button to get back from account creation
 with st.container():
@@ -173,7 +172,7 @@ with st.container():
     for i in range(20):
         st.sidebar.write('')
     st.sidebar.write("Developed by Linden Morgan")
-    st.sidebar.write("If you're interested in the code for this project, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
+    st.sidebar.write("If you're interested in the code for ProctorPal, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Decides what text to display in chat input feild
 if admin == True:
@@ -221,8 +220,8 @@ if admin == True:
     st.write(st.session_state[f"assistant_history{selected_chat}"])
 
 # Set chat history of ChatGPT input
-if len(st.session_state[f"user_history{selected_chat}"]) > 2: 
-    chat_history = st.session_state[f"user_history{selected_chat}"][-2] + st.session_state[f"assistant_history{selected_chat}"][-2]
+if len(st.session_state[f"user_history{selected_chat}"]) > 1: 
+    chat_history = st.session_state[f"user_history{selected_chat}"][-1] + st.session_state[f"assistant_history{selected_chat}"][-1]
 else:
     chat_history = st.session_state[f"user_history{selected_chat}"] + st.session_state[f"assistant_history{selected_chat}"]
 
@@ -246,7 +245,7 @@ for i in range(response_num):
 
 # Gives ChatGPT api input
 messages = [{"role": "system", "content": "You are an assistant designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "Do not reference the fact that this data was given to you to the user, pretend like you know it."}]
-messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relevant to the user question. Do not answer questions that are not about Proctor. Here is some background infromation:" + str(chat_history)})
+messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relevant to the user question. Do NOT answer questions that aren't about Proctor. Here is some background infromation:" + str(chat_history)})
 
 # Prints API input for easier debugging
 if admin == True:
