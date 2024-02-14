@@ -8,9 +8,12 @@ import json
 
 
 # Editable states
-response_num = 7
-gpt_tokens = 512
 gpt_version = 3.5
+gpt_tokens = 512
+response_num = 7
+database_ip = "172.17.0.2"
+database_name = "db3"
+
 
 # Import hidden data from .env
 load_dotenv()
@@ -19,7 +22,7 @@ admin_key = os.environ["admin_key"]
 
 # Initialize clients
 oclient = OpenAI(api_key=YOUR_API_KEY)
-qclient = QdrantClient("172.17.0.2", port=6333)
+qclient = QdrantClient(database_ip, port=6333)
 embeddings_model = oclient.embeddings.create
 
 # Initilize lists/variables
@@ -51,7 +54,7 @@ st.title("ProctorPal (beta)")
 one, two, three, four, five = st.sidebar.columns(5)
 
 with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
-    st.write("Hello! I am ProctorPal, a helpful AI assistant developed by Linden Morgan to assist in all manner of Proctor related questions. For the best experience, please login or create an account in the field to the left.")
+    st.write("Hello! I am ProctorPal, a helpful AI assistant designed to assist with all manner of Proctor related questions. For the best experience, please login or create an account in the field to the left.")
 
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
@@ -114,11 +117,6 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
             st.session_state["create_account"] = None
             st.rerun()
 
-# Sets a welecome message
-if st.session_state["user"] != '':
-    #if data[username]["Number of chats"] == 1: 
-    welcome_message = f"Welcome, {username}!"
-
 # Login button to get back from account creation
 with st.container():
     if st.session_state["create_account"] == True:
@@ -131,6 +129,10 @@ with st.container():
 # Logged in display
 if st.session_state["user"] != '':
     st.sidebar.subheader(f"Currently logged in as {username}.")
+
+    # Sets a welecome message
+    if st.session_state["user"] != "Guest":
+        welcome_message = f"Welcome, {username}!"
 
     # Account settings
     if st.session_state["user"] != '':
@@ -185,6 +187,8 @@ if st.session_state["username"] == "Guest":
     if not st.session_state["user_history1"]:
         query = st.session_state["guest_query_1"]
 
+
+
 # Holds program until user enters text
 while query ==  None:
     time.sleep(0.1)
@@ -225,7 +229,7 @@ embedded_query = embeddings_model(input = [query], model="text-embedding-3-large
 
 # Get database output
 database_response = qclient.search( 
-    collection_name="newline_collection1", query_vector=embedded_query, limit=response_num
+    collection_name=database_name, query_vector=embedded_query, limit=response_num
 )
 
 # Filter database response (replace with valid json implimentation eventually)
