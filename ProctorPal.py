@@ -11,7 +11,7 @@ import json
 gpt_version = 3.5
 gpt_tokens = 512
 response_num = 7
-database_ip = "172.17.0.2"
+database_ip = "localhost"
 database_name = "db3"
 
 

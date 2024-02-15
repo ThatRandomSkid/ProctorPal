@@ -8,17 +8,16 @@ from dotenv import load_dotenv
 
 # Editable variables
 database_name = "db3"
-database_ip = "172.17.0.2"
+database_ip = "localhost"
 n = 0
-filepath_to_data = '~/ProctorPal/Training_Data/handbook_output.txt'
+data_file_name = 'bot_description.txt'
 context = ""
 
 # Determine if user wants to create a new database or not
-create_new = input("Create new database? y/n")
+create_new = input("Create new database? y/n: ")
 if create_new.lower == "y":
     database_name = input("New databsebase name:")
-elif create_new.lower != "y" and create_new.lower != "n":
-    print("Please try again.")
+
 
 
 # Load OpenAI API key form .env
@@ -37,7 +36,7 @@ if create_new == "y":
     )
 
 # Sets file path
-file_path = os.path.expanduser(filepath_to_data)
+file_path = os.path.expanduser(f'~/ProctorPal/Training_Data/{data_file_name}')
 
 # Chunking
 with open(file_path, 'r') as f:
