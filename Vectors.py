@@ -18,6 +18,8 @@ create_new = input("Create new database? y/n: ")
 if create_new.lower == "y":
     database_name = input("New databsebase name:")
 
+# Determine data to upload
+data_file_name = input("What is the name of the file for the data you want to upload? ")
 
 
 # Load OpenAI API key form .env
