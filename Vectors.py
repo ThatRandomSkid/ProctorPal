@@ -11,7 +11,7 @@ import time
 # Editable variables
 data_file_name = 'bot_description.txt'
 context = ""
-n = 7356
+n = 0
 retry_times = 20
 
 # Gets settings from settings.json file
@@ -30,8 +30,6 @@ if create_new == "y":
         d["database_name"] = database_name
     with open(settings_path, 'w') as f:
         json.dump(d, f, indent=4)
-
-
 elif create_new != "n":
     print("Input is invalid. Please try again.")
     exit()
@@ -40,15 +38,17 @@ elif create_new != "n":
 data_file_name = input("What is the name of the file that the data you want to upload is in? ")
 
 # Determine chuncking method
-chunking_method = input('What chuncking method should be used? Type "n" for new line split (\\n) or s for sentence split (.): ' )
+chunking_method = input('What chuncking method should be used? Type "n" for new line character split (\\n), "s" for sentence split (.) or "p" for paragraph split (\\n\\\n): ')
 
 
 
 # Sets chunking method
 if chunking_method == "n":
-    divider = "\n"
-if chunking_method == "s":
+    divider = "\\n"
+elif chunking_method == "s":
     divider = "."
+elif chunking_method == "p":
+    divider = "\n\n"
 else: 
     print("Input is invalid. Please try again.")
     exit()
@@ -91,6 +91,7 @@ else:
 # Chunking
 text2 = text.split(divider)
 
+# Function for vector embedding/uploading
 def vector_upload(text2, database_name, context):
     global n # Declare n as global
     try:
@@ -126,7 +127,6 @@ def vector_upload(text2, database_name, context):
     except Exception as e: 
         print(f"Attempt failed: {e}.")
         return n, e
-
 
 
 # Handles errors
