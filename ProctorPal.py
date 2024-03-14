@@ -58,7 +58,10 @@ st.title("ProctorPal (beta)")
 one, two, three, four, five = st.sidebar.columns(5)
 
 with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
-    st.write("Hello! I am ProctorPal, a helpful AI assistant designed to assist with all manner of Proctor related questions. For the best experience, please login or create an account in the field to the left.")
+    st.write("""Hello! I am ProctorPal, a helpful AI assistant designed to assist with all manner of Proctor related questions. 
+             For the best experience, please login or create an account in the field to the left. 
+             Please be aware that while I can be a helpful tool, I am capable of making mistakes and you should never make impotant decisions 
+             based on my guidence.""")
 
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
@@ -247,9 +250,12 @@ for i in range(response_num):
     filtered.append(filtering(str(database_response[i])))
 
 # Gives ChatGPT api input
-messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. Here is the user question: {str(query)} 
-             Do not reference the fact that this data was given to you to the user, pretend like you know it. Here is some relevant information: {str(filtered)} 
-             Include only the parts that are relevant to the user question. Do NOT answer questions that aren't about Proctor."""}]
+messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. 
+             It is ok if you cannot answer a question with the data given, but DO NOT make up answers when the information was not given to you in the context. 
+             Instead, tell the user that you do not know the answer, but do not reference that the infromation was not given to you.
+             Here is the user question: {str(query)} 
+             Here is some potentially relevant information, but not all of it will be usefull: {str(filtered)} 
+             Include only the parts that are relevant to the user question. DO NOT answer questions that aren't about Proctor."""}]
 
 # Prints API input for easier debugging
 if admin == True:
@@ -278,8 +284,8 @@ if username != "Guest" and  username != "test":
     user_history = st.session_state[f"user_history{selected_chat}"][-1]
     assistant_history = st.session_state[f"assistant_history{selected_chat}"][-1]
 
-    #data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
-    #data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
+    data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
+    data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
 
     with open("Accounts.json", 'w') as accounts_file:
         json.dump(data, accounts_file, indent=4)
