@@ -7,13 +7,17 @@ from dotenv import load_dotenv
 import json
 
 
-# Editable states
+# Editable settings
 gpt_version = 3.5
 gpt_tokens = 512
 response_num = 7
-database_ip = "localhost"
-database_name = "db3"
 
+# Gets settings from settings.json file
+settings_path = os.path.expanduser("~/ProctorPal/settings.json")
+with open(settings_path, 'r') as f:
+    d = json.load(f)
+    database_ip = d.get("database_ip")
+    database_name = d.get("database_name")
 
 # Import hidden data from .env
 load_dotenv()
@@ -243,14 +247,15 @@ for i in range(response_num):
     filtered.append(filtering(str(database_response[i])))
 
 # Gives ChatGPT api input
-messages = [{"role": "system", "content": "You are an assistant designed to answer questions about Proctor Academy. Here is the user question: " + str(query) + "Do not reference the fact that this data was given to you to the user, pretend like you know it."}]
-messages.append({"role": "system", "content": "Here is some information: " + str(filtered) + "Include only the parts that are relevant to the user question. Do NOT answer questions that aren't about Proctor. Here is some background infromation:" + str(chat_history)})
+messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. Here is the user question: {str(query)} 
+             Do not reference the fact that this data was given to you to the user, pretend like you know it. Here is some relevant information: {str(filtered)} 
+             Include only the parts that are relevant to the user question. Do NOT answer questions that aren't about Proctor."""}]
 
 # Prints API input for easier debugging
 if admin == True:
     st.write(str(messages))
 
-# Sets ChatGPT model
+# Sets ChatGPT version
 if gpt_version == 3.5:
     gpt_version = "gpt-3.5-turbo-0125"
 elif gpt_version == 4:
