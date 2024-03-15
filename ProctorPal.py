@@ -5,10 +5,11 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 import json
+import extra_streamlit_components as stx
 
 
 # Editable settings
-gpt_version = 3.5
+gpt_version = 4
 gpt_tokens = 512
 response_num = 7
 
@@ -45,12 +46,22 @@ if st.session_state["username"] != '':
     username = st.session_state["username"]
 if "password" not in st.session_state:
     st.session_state["password"] = ''
+if "cookies_active" not in st.session_state:
+    st.session_state["cookies_active"] = ''
+if "use_cookies" not in st.session_state:
+    st.session_state["use_cookies"] = ''
+if "prevent_auto_sign_in" not in st.session_state:
+    st.session_state["prevent_auto_sign_in"] = False
+if "clear" not in st.session_state:
+    st.session_state["clear"] = 0
 new_password2 = False
 selected_chat = 1
 accounts_read = open("Accounts.json", 'r')
 data = json.load(accounts_read)
+about_hight = 12
 
-
+print("ss username:", st.session_state["username"]) #
+print("prevent_auto_sign_in:", st.session_state["prevent_auto_sign_in"]) #
 
 # Webage deisgn/setup
 st.set_page_config(page_title='ProctorPal', page_icon = "./Profile_Pictures/ProctorPal.png")
@@ -63,24 +74,66 @@ with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
              Please be aware that while I can be a helpful tool, I am capable of making mistakes and you should never make impotant decisions 
              based on my guidence.""")
 
+# Cookie setup
+def get_manager():
+    return stx.CookieManager()
+cookie_manager = get_manager()
+
+
+st.session_state["username"] = cookie_manager.get(cookie="cookie_user") # Gets username cookie
+st.session_state["password"] = cookie_manager.get(cookie="cookie_pass") # Gets password cookie
+cookie_pass = st.session_state["password"]
+if cookie_pass == '':
+    cookie_pass = None
+    print("NO COOKIE")
+
+print("cookie_pass:", cookie_pass) #
+print("Username:", st.session_state["user"]) #
+
+# Saves authenication cookies if none exist
+if st.session_state["cookies_active"] == True and st.session_state["use_cookies"] == True:
+    if cookie_pass != st.session_state["password"]:
+        if cookie_pass != None:
+            cookie_manager.delete("cookie_pass")
+        cookie_manager.set("cookie_user", st.session_state["username"],  key = "0")
+        cookie_manager.set("cookie_pass", st.session_state["password"], key = "1")
+        print("cookie set", st.session_state["password"]) #
+
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
-    st.sidebar.subheader("Login")
 
-    # Get username/password input
-    st.session_state["username"] = st.sidebar.text_input("Username: ")
-    st.session_state["password"] = st.sidebar.text_input("Password: ", type="password")
+    # Get username/password from input if there is no authentication cookie
+    if cookie_pass == None or st.session_state["prevent_auto_sign_in"] == True:
+        st.sidebar.subheader("Login")
+        st.session_state["username"] = st.sidebar.text_input("Username: ", key = st.session_state["clear"])
+        st.session_state["password"] = st.sidebar.text_input("Password: ", type="password", key = st.session_state["clear"]+1)
+        st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True, key = st.session_state["clear"]+2)
 
+        # Deletes cookie if use_cookies is set to false
+        if st.session_state["use_cookies"] == False and cookie_pass != None: 
+            cookie_manager.delete("cookie_user")
+            cookie_manager.delete("cookie_pass")
+            print("cookie deleted")
+
+    # If there is an authenication cookie sets username/password from authentication cookie
+    elif cookie_pass != None and st.session_state["prevent_auto_sign_in"] == False:
+        st.session_state["password"] = cookie_pass
+    
     # Sets username/password for code
     username = st.session_state["username"]
     password = st.session_state["password"]
 
-    if password != "":
-        if username in data and password == data[username]["Password"]:
+    # Logs user in
+    if (password != "" and username != "") or (cookie_pass == password and st.session_state["prevent_auto_sign_in"] == False):
+        if (username in data and password == data[username]["Password"]) or cookie_pass == password:
             st.session_state["user"] = username
-            if username == "test":  # Makes testing account correspond to Tester as a user 
+            if username == "test":  # Makes testing account correspond to Tester as a user
                 st.session_state["user"] = "Tester"
             st.session_state["create_account"] = None
+
+            # Enables create cookie script at the begining of code
+            st.session_state["cookies_active"] = True
+                    
             st.rerun()
             
         elif username not in data:
@@ -94,6 +147,9 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
 
 # Button allowing user to create an account if they don't already have one
 if st.session_state["create_account"] == False:
+    for i in range(2):
+        st.sidebar.write("")
+    st.sidebar.subheader("Sign Up")
     st.sidebar.write("Don't have an account? Create one here:")
     if st.sidebar.button("Create account"):
         st.session_state["create_account"] = True
@@ -106,6 +162,7 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
     new_username = st.sidebar.text_input("Username:")
     new_password = st.sidebar.text_input("Password:", type="password")
     new_password2 = st.sidebar.text_input("Re-enter password:", type="password")
+    st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True)
 
     if new_username in data:
         st.sidebar.write("Username already taken. Please try again.") 
@@ -113,7 +170,7 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
     elif new_password != new_password2 and new_password != "" and new_password2 != "":
         st.sidebar.write("Passwords do not match.")
 
-    elif new_password and new_password2 and new_username != "": 
+    elif new_password != "" and new_password2 != "" and new_username != "":  
         if st.sidebar.button("Create account"):
             data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
             open("Accounts.json", 'w').write(json.dumps(data, indent=4))
@@ -125,13 +182,15 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
             st.rerun()
 
 # Login button to get back from account creation
-with st.container():
-    if st.session_state["create_account"] == True:
-        st.sidebar.write("Have an account? Login here:")
-        if st.sidebar.button("Login"):
-            st.session_state["create_account"] = False
-            if st.session_state["user"] == '':
-                st.rerun()
+if st.session_state["create_account"] == True:
+    for i in range(2):
+        st.sidebar.write("")
+    st.sidebar.subheader("Login")
+    st.sidebar.write("Have an account? Login here:")
+    if st.sidebar.button("Login"):
+        st.session_state["create_account"] = False
+        if st.session_state["user"] == '':
+            st.rerun()
 
 # Logged in display
 if st.session_state["user"] != '':
@@ -153,6 +212,9 @@ if st.session_state["user"] != '':
         st.session_state["username"] = ''
         st.session_state["password"] = ''
         st.session_state["create_account"] = False
+        st.session_state["prevent_auto_sign_in"] = True
+        st.session_state["clear"] += 1
+        print("prevent_auto_sign_in2:", st.session_state["prevent_auto_sign_in"]) #
         st.rerun()
     
     # Creates session states for historic chats
@@ -172,11 +234,10 @@ if st.session_state["user"] != '':
                     st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 # Provides link to GitHub in the sidebar
-with st.container():
-    for i in range(20):
-        st.sidebar.write('')
-    st.sidebar.write("Developed by Linden Morgan")
-    st.sidebar.write("If you're interested in the code for ProctorPal, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
+for i in range(about_hight):
+    st.sidebar.write('')
+st.sidebar.write("Developed by Linden Morgan")
+st.sidebar.write("If you're interested in the code for ProctorPal, you can check it out here: https://github.com/ThatRandomSkid/ProctorPal")
 
 # Decides what text to display in chat input feild
 if admin == True:
@@ -243,7 +304,6 @@ database_response = qclient.search(
 def filtering(response):
     split_response = str(response).split(":")
     split_response = str(split_response[1]).split("}")
-    print(str(i+1)+".", split_response, "\n")
     return split_response[0].replace("\n", "")
 
 for i in range(response_num):
