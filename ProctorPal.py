@@ -30,7 +30,7 @@ oclient = OpenAI(api_key=YOUR_API_KEY)
 qclient = QdrantClient(database_ip, port=6333)
 embeddings_model = oclient.embeddings.create
 
-# Initilize lists/variables
+# Initilize lists/variables/session states 
 filtered = []
 admin = False
 query = ''
@@ -80,7 +80,6 @@ cookie_manager = get_manager()
 cookie_user = cookie_manager.get(cookie="cookie_user") # Gets username cookie
 cookie_pass = cookie_manager.get(cookie="cookie_pass") # Gets password cookie
 
-print("Cookies:", cookie_user, cookie_pass)
 if cookie_user == '':
     cookie_user = None
 if cookie_pass == '':
@@ -89,14 +88,11 @@ if cookie_pass == '':
 # Saves authenication cookies if none exist
 if st.session_state["cookies_active"] == True and st.session_state["use_cookies"] == True:
     if cookie_user != st.session_state["username"] or cookie_pass != st.session_state["password"]:
-        if cookie_user != None and cookie_pass != None:
+        if cookie_user != None and cookie_pass != None: # Deletes any exiting cookies
             cookie_manager.delete("cookie_user", key = "a")
             cookie_manager.delete("cookie_pass", key = "b")
-            print("cookies deleted0")
-
         cookie_manager.set("cookie_user", st.session_state["username"],  key = "c")
         cookie_manager.set("cookie_pass", st.session_state["password"], key = "d")
-        print("cookies set:", cookie_manager.get(cookie="cookie_user"), cookie_manager.get(cookie="cookie_pass"))
 
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
@@ -108,14 +104,17 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
         st.session_state["password"] = st.sidebar.text_input("Password: ", type="password", key = st.session_state["clear"]+1)
         st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True, key = st.session_state["clear"]+2)
 
-        data[st.session_state["username"]]["Uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag key Accounts.json
-        json.dump(data, accounts_read, indent=4)
+        if st.session_state["username"] != '' and st.session_state["password"] != '':
+            accounts_read = open("Accounts.json", 'r')
+            data2 = json.load(accounts_read)
+            with open("Accounts.json", 'w') as accounts_write:
+                data[st.session_state["username"]]["Uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag key Accounts.json
+                json.dump(data2, accounts_write, indent=4)
 
         # Deletes cookie if use_cookies is set to false
         if st.session_state["use_cookies"] == False and cookie_pass != None and cookie_user != None: 
-            cookie_manager.delete("cookie_user")
-            cookie_manager.delete("cookie_pass")
-            print("cookie deleted")
+            cookie_manager.delete("cookie_user", key = "y")
+            cookie_manager.delete("cookie_pass", key = "z")
 
     # If there is an authenication cookie sets username/password from authentication cookie
     elif cookie_user != None and cookie_pass != None and st.session_state["prevent_auto_sign_in"] == False:
@@ -133,10 +132,7 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
             if username == "test":  # Makes testing account correspond to Tester as a user
                 st.session_state["user"] = "Tester"
             st.session_state["create_account"] = None
-
-            # Enables create cookie script at the begining of code
-            st.session_state["cookies_active"] = True
-                    
+            st.session_state["cookies_active"] = True # Enables create cookie script at the begining of code
             st.rerun()
             
         elif username not in data:
