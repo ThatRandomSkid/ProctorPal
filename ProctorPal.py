@@ -6,6 +6,7 @@ import time
 from dotenv import load_dotenv
 import json
 import extra_streamlit_components as stx
+from PIL import ImageOps
 
 
 # Editable settings
@@ -54,19 +55,22 @@ if "prevent_auto_sign_in" not in st.session_state:
     st.session_state["prevent_auto_sign_in"] = False
 if "clear" not in st.session_state:
     st.session_state["clear"] = 0
+if "pfp_filepath" not in st.session_state:
+    st.session_state["pfp_filepath"] = "null"
 new_password2 = False
 selected_chat = 1
-accounts_read = open("Accounts.json", 'r')
+accounts_read = open("accounts.json", 'r')
 data = json.load(accounts_read)
 about_hight = 12
 
 
+
 # Webage deisgn/setup
-st.set_page_config(page_title='ProctorPal', page_icon = "./Profile_Pictures/ProctorPal.png")
+st.set_page_config(page_title='ProctorPal', page_icon = "./profile_pictures/ProctorPal.png")
 st.title("ProctorPal (beta)")
 one, two, three, four, five = st.sidebar.columns(5)
 
-with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
+with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png"): 
     st.write("""Hello! I am ProctorPal, a helpful AI assistant designed to assist with all manner of Proctor related questions. 
              For the best experience, please login or create an account in the field to the left. 
              Please be aware that while I can be a helpful tool, I am capable of making mistakes and you should never make impotant decisions 
@@ -105,10 +109,10 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
         st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True, key = st.session_state["clear"]+2)
 
         if st.session_state["username"] != '' and st.session_state["password"] != '':
-            accounts_read = open("Accounts.json", 'r')
+            accounts_read = open("accounts.json", 'r')
             data2 = json.load(accounts_read)
-            with open("Accounts.json", 'w') as accounts_write:
-                data[st.session_state["username"]]["Uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag key Accounts.json
+            with open("accounts.json", 'w') as accounts_write:
+                data[st.session_state["username"]]["uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag accounts.json
                 json.dump(data2, accounts_write, indent=4)
 
         # Deletes cookie if use_cookies is set to false
@@ -127,7 +131,7 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
 
     # Logs user in
     if password != "" and username != "":
-        if (username in data and password == data[username]["Password"]):
+        if (username in data and password == data[username]["password"]):
             st.session_state["user"] = username
             if username == "test":  # Makes testing account correspond to Tester as a user
                 st.session_state["user"] = "Tester"
@@ -138,7 +142,7 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
         elif username not in data:
             st.sidebar.write(f'No username "{username}" in system.')
 
-        elif password != data[username]["Password"]:
+        elif password != data[username]["password"]:
             st.sidebar.write("Password is incorrect.")
 
         else:
@@ -159,7 +163,7 @@ if st.session_state["create_account"] == False:
 if st.session_state["create_account"] == True and st.session_state["user"] == '':
     st.sidebar.subheader("Create Account")
     new_username = st.sidebar.text_input("Username:")
-    new_password = st.sidebar.text_input("Password:", type="password")
+    new_password = st.sidebar.text_input("password:", type="password")
     new_password2 = st.sidebar.text_input("Re-enter password:", type="password")
     st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True)
 
@@ -171,8 +175,8 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
 
     elif new_password != "" and new_password2 != "" and new_username != "":  
         if st.sidebar.button("Create account"):
-            data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Uses cookies' : st.session_state["use_cookies"], 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
-            open("Accounts.json", 'w').write(json.dumps(data, indent=4))
+            data.update({new_username: {'username': new_username, 'password': new_password, 'number of chats': 1, 'uses cookies' : st.session_state["use_cookies"], "profile picture filepath" : 'null', 'chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
+            open("accounts.json", 'w').write(json.dumps(data, indent=4))
 
             # Login
             st.session_state["username"] = new_username
@@ -193,6 +197,17 @@ if st.session_state["create_account"] == True:
 
 # Logged in display
 if st.session_state["user"] != '':
+
+    # Set user pfp
+    if data[username]["profile picture filepath"] != "null":
+        accounts_read = open("accounts.json", 'r')
+        with open("accounts.json", 'r') as accounts_read:
+            data4 = json.load(accounts_read)
+            st.session_state["pfp_filepath"] = os.path.expanduser(data4[username]["profile picture filepath"])
+    else:
+        st.session_state["pfp_filepath"] = None
+
+    # Informs user of login status
     st.sidebar.subheader(f"Currently logged in as {username}.")
 
     # Sets a welecome message
@@ -200,10 +215,34 @@ if st.session_state["user"] != '':
         welcome_message = f"Welcome, {username}!"
 
     # Account settings
-    if st.session_state["user"] != '':
-        with st.sidebar.expander("Account Settings"):
-            if st.text_input("Beta tester keys go here:") == admin_key:
-                admin = True
+    with st.sidebar.popover("Account Settings"):
+
+        # User profile picture upload
+        user_pfp_upload = st.file_uploader("Upload image for custom profile picture:", type=["png", "jpg", "jpeg"])
+        if user_pfp_upload != None:
+
+            # Sets file path of image
+            pfps_path = os.path.expanduser("~/ProctorPal/profile_pictures")
+            upload_path = os.path.join(pfps_path, user_pfp_upload.name)
+
+            # Saves pfp to profile_pictures folder
+            with open((upload_path), 'wb') as f:
+                f.write(user_pfp_upload.getvalue())
+
+            # Updates profile picture filepath key in accounts.json
+            accounts_read = open("accounts.json", 'r')
+            data3 = json.load(accounts_read)
+            with open("accounts.json", 'w') as accounts_write:
+                data3[st.session_state["username"]]["profile picture filepath"] = upload_path 
+                json.dump(data3, accounts_write, indent=4)
+                            
+            # Apply profile picture by rerunning script
+            if st.button("Apply"):
+                st.rerun()
+            
+        # Sets admin flag for easier debuggin if correct key is entered
+        if st.text_input("Beta tester keys go here:") == admin_key:
+            admin = True
 
     # Log out button
     if st.sidebar.button("Log out"):
@@ -220,16 +259,17 @@ if st.session_state["user"] != '':
     if username != "Guest" and st.session_state["user"] != "":
         for i in range(1, chats+1):
             if f"user_history{i}" not in st.session_state:
-                st.session_state[f"user_history{i}"] = data[username]['Chat history'][str(i)]['user_history']
+                st.session_state[f"user_history{i}"] = data[username]['chat history'][str(i)]['user_history']
             if f"assistant_history{i}" not in st.session_state:
-                st.session_state[f"assistant_history{i}"] = data[username]['Chat history'][str(i)]['assistant_history']
+                st.session_state[f"assistant_history{i}"] = data[username]['chat history'][str(i)]['assistant_history']
         
     # Prints chat
+    st.session_state["pfp_filepath"] = data[username]["profile picture filepath"]
     for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
-        with st.chat_message("user"):
+        with st.chat_message("user", avatar = st.session_state["pfp_filepath"]):
             st.write(st.session_state[f"user_history{selected_chat}"][i])
         if i < len(st.session_state[f"assistant_history{selected_chat}"]):
-                with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"):
+                with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png"):
                     st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
 # Provides link to GitHub in the sidebar
@@ -277,7 +317,7 @@ if st.session_state["user"] == '':
 st.session_state[f"user_history{selected_chat}"].append(query)
 
 # Writes question user just entered
-with st.chat_message("user"):
+with st.chat_message("user", avatar = st.session_state["pfp_filepath"]):
     st.write(query)
 
 # Prints degbug info if admin flair is active
@@ -326,7 +366,7 @@ elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
 # Gets/Prints ChatGPT api response
-with st.chat_message("assistant", avatar = "./Profile_Pictures/ProctorPal.png"): 
+with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png"): 
     with st.spinner("Thinking..."):
         chat = oclient.chat.completions.create(
         model = gpt_version, messages=messages, max_tokens=gpt_tokens
@@ -342,17 +382,17 @@ if username != "Guest" and  username != "test":
     user_history = st.session_state[f"user_history{selected_chat}"][-1]
     assistant_history = st.session_state[f"assistant_history{selected_chat}"][-1]
 
-    data[username]['Chat history'][str(selected_chat)]['user_history'].append(user_history)
-    data[username]['Chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
+    data[username]['chat history'][str(selected_chat)]['user_history'].append(user_history)
+    data[username]['chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
 
-    with open("Accounts.json", 'w') as accounts_file:
+    with open("accounts.json", 'w') as accounts_file:
         json.dump(data, accounts_file, indent=4)
 
 # Logs chat in history section of account file
 if admin == True:
-    st.write(data[username]['Chat history'][str(selected_chat)])
+    st.write(data[username]['chat history'][str(selected_chat)])
 
 # Updates logs
 if username != "test" and admin == False:
-    with open("Logs.txt", "a") as f1:
+    with open("logs.txt", "a") as f1:
         f1.write("\n\n" + username + ": " + query + "\n" + "ProctorPal: " + reply)

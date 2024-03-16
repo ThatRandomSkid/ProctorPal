@@ -69,7 +69,7 @@ if create_new == "y":
     )
 
 # Sets file path
-file_path = os.path.expanduser(f'~/ProctorPal/Training_Data/{data_file_name}')
+file_path = os.path.expanduser(f'~/ProctorPal/training_data/{data_file_name}')
 
 # Opens the file data is in
 file = open(file_path, 'r')
