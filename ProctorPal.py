@@ -108,7 +108,7 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
         st.session_state["password"] = st.sidebar.text_input("Password: ", type="password", key = st.session_state["clear"]+1)
         st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True, key = st.session_state["clear"]+2)
 
-        data[username]["Uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag key Accounts.json
+        data[st.session_state["username"]]["Uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag key Accounts.json
         json.dump(data, accounts_read, indent=4)
 
         # Deletes cookie if use_cookies is set to false
