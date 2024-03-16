@@ -60,8 +60,6 @@ accounts_read = open("Accounts.json", 'r')
 data = json.load(accounts_read)
 about_hight = 12
 
-print("ss username:", st.session_state["username"]) #
-print("prevent_auto_sign_in:", st.session_state["prevent_auto_sign_in"]) #
 
 # Webage deisgn/setup
 st.set_page_config(page_title='ProctorPal', page_icon = "./Profile_Pictures/ProctorPal.png")
@@ -79,44 +77,49 @@ def get_manager():
     return stx.CookieManager()
 cookie_manager = get_manager()
 
+cookie_user = cookie_manager.get(cookie="cookie_user") # Gets username cookie
+cookie_pass = cookie_manager.get(cookie="cookie_pass") # Gets password cookie
 
-st.session_state["username"] = cookie_manager.get(cookie="cookie_user") # Gets username cookie
-st.session_state["password"] = cookie_manager.get(cookie="cookie_pass") # Gets password cookie
-cookie_pass = st.session_state["password"]
+print("Cookies:", cookie_user, cookie_pass)
+if cookie_user == '':
+    cookie_user = None
 if cookie_pass == '':
     cookie_pass = None
-    print("NO COOKIE")
-
-print("cookie_pass:", cookie_pass) #
-print("Username:", st.session_state["user"]) #
 
 # Saves authenication cookies if none exist
 if st.session_state["cookies_active"] == True and st.session_state["use_cookies"] == True:
-    if cookie_pass != st.session_state["password"]:
-        if cookie_pass != None:
-            cookie_manager.delete("cookie_pass")
-        cookie_manager.set("cookie_user", st.session_state["username"],  key = "0")
-        cookie_manager.set("cookie_pass", st.session_state["password"], key = "1")
-        print("cookie set", st.session_state["password"]) #
+    if cookie_user != st.session_state["username"] or cookie_pass != st.session_state["password"]:
+        if cookie_user != None and cookie_pass != None:
+            cookie_manager.delete("cookie_user", key = "a")
+            cookie_manager.delete("cookie_pass", key = "b")
+            print("cookies deleted0")
+
+        cookie_manager.set("cookie_user", st.session_state["username"],  key = "c")
+        cookie_manager.set("cookie_pass", st.session_state["password"], key = "d")
+        print("cookies set:", cookie_manager.get(cookie="cookie_user"), cookie_manager.get(cookie="cookie_pass"))
 
 # Login
 if st.session_state["user"] == '' and st.session_state["create_account"] == False:
 
     # Get username/password from input if there is no authentication cookie
-    if cookie_pass == None or st.session_state["prevent_auto_sign_in"] == True:
+    if cookie_user == None or cookie_pass == None or st.session_state["prevent_auto_sign_in"] == True:
         st.sidebar.subheader("Login")
         st.session_state["username"] = st.sidebar.text_input("Username: ", key = st.session_state["clear"])
         st.session_state["password"] = st.sidebar.text_input("Password: ", type="password", key = st.session_state["clear"]+1)
         st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True, key = st.session_state["clear"]+2)
 
+        data[username]["Uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag key Accounts.json
+        json.dump(data, accounts_read, indent=4)
+
         # Deletes cookie if use_cookies is set to false
-        if st.session_state["use_cookies"] == False and cookie_pass != None: 
+        if st.session_state["use_cookies"] == False and cookie_pass != None and cookie_user != None: 
             cookie_manager.delete("cookie_user")
             cookie_manager.delete("cookie_pass")
             print("cookie deleted")
 
     # If there is an authenication cookie sets username/password from authentication cookie
-    elif cookie_pass != None and st.session_state["prevent_auto_sign_in"] == False:
+    elif cookie_user != None and cookie_pass != None and st.session_state["prevent_auto_sign_in"] == False:
+        st.session_state["username"] = cookie_user
         st.session_state["password"] = cookie_pass
     
     # Sets username/password for code
@@ -124,8 +127,8 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
     password = st.session_state["password"]
 
     # Logs user in
-    if (password != "" and username != "") or (cookie_pass == password and st.session_state["prevent_auto_sign_in"] == False):
-        if (username in data and password == data[username]["Password"]) or cookie_pass == password:
+    if password != "" and username != "":
+        if (username in data and password == data[username]["Password"]):
             st.session_state["user"] = username
             if username == "test":  # Makes testing account correspond to Tester as a user
                 st.session_state["user"] = "Tester"
@@ -172,7 +175,7 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
 
     elif new_password != "" and new_password2 != "" and new_username != "":  
         if st.sidebar.button("Create account"):
-            data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
+            data.update({new_username: {'Username': new_username, 'Password': new_password, 'Number of chats': 1, 'Uses cookies' : st.session_state["use_cookies"], 'Chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
             open("Accounts.json", 'w').write(json.dumps(data, indent=4))
 
             # Login
@@ -213,8 +216,8 @@ if st.session_state["user"] != '':
         st.session_state["password"] = ''
         st.session_state["create_account"] = False
         st.session_state["prevent_auto_sign_in"] = True
+        st.session_state["cookies_active"] = False
         st.session_state["clear"] += 1
-        print("prevent_auto_sign_in2:", st.session_state["prevent_auto_sign_in"]) #
         st.rerun()
     
     # Creates session states for historic chats
