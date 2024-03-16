@@ -6,7 +6,6 @@ import time
 from dotenv import load_dotenv
 import json
 import extra_streamlit_components as stx
-from PIL import ImageOps
 
 
 # Editable settings
@@ -264,7 +263,6 @@ if st.session_state["user"] != '':
                 st.session_state[f"assistant_history{i}"] = data[username]['chat history'][str(i)]['assistant_history']
         
     # Prints chat
-    st.session_state["pfp_filepath"] = data[username]["profile picture filepath"]
     for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
         with st.chat_message("user", avatar = st.session_state["pfp_filepath"]):
             st.write(st.session_state[f"user_history{selected_chat}"][i])
