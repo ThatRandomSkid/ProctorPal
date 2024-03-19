@@ -6,10 +6,13 @@ import time
 from dotenv import load_dotenv
 import json
 import extra_streamlit_components as stx
+import tiktoken
 
+# Starts timer
+start = time.time()
 
 # Editable settings
-gpt_version = 4
+gpt_version = 3.5
 gpt_tokens = 512
 response_num = 7
 
@@ -139,13 +142,13 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
             st.rerun()
             
         elif username not in data:
-            st.sidebar.write(f'No username "{username}" in system.')
+            st.sidebar.warning(f'No username "{username}" in system.')
 
         elif password != data[username]["password"]:
-            st.sidebar.write("Password is incorrect.")
+            st.sidebar.warning("Password is incorrect.")
 
         else:
-            st.sidebar.write("Username or password are incorrect.")
+            st.sidebar.warning("Username or password are incorrect.")
 
 # Button allowing user to create an account if they don't already have one
 if st.session_state["create_account"] == False:
@@ -167,10 +170,10 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
     st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True)
 
     if new_username in data:
-        st.sidebar.write("Username already taken. Please try again.") 
+        st.sidebar.warning("Username already taken. Please try again.") 
 
     elif new_password != new_password2 and new_password != "" and new_password2 != "":
-        st.sidebar.write("Passwords do not match.")
+        st.sidebar.warning("Passwords do not match.")
 
     elif new_password != "" and new_password2 != "" and new_username != "":  
         if st.sidebar.button("Create account"):
@@ -217,27 +220,29 @@ if st.session_state["user"] != '':
     with st.sidebar.popover("Account Settings"):
 
         # User profile picture upload
-        user_pfp_upload = st.file_uploader("Upload image for custom profile picture:", type=["png", "jpg", "jpeg"])
-        if user_pfp_upload != None:
+        if st.session_state["user"] != "Guest":
+            user_pfp_upload = st.file_uploader("Upload image for custom profile picture:", type=["png", "jpg", "jpeg"])
+            st.write("(Image must be in landscape orientation or it will appear upside down)")
+            if user_pfp_upload != None:
 
-            # Sets file path of image
-            pfps_path = os.path.expanduser("~/ProctorPal/profile_pictures")
-            upload_path = os.path.join(pfps_path, user_pfp_upload.name)
+                # Sets file path of image
+                pfps_path = os.path.expanduser("~/ProctorPal/profile_pictures")
+                upload_path = os.path.join(pfps_path, user_pfp_upload.name)
 
-            # Saves pfp to profile_pictures folder
-            with open((upload_path), 'wb') as f:
-                f.write(user_pfp_upload.getvalue())
+                # Saves pfp to profile_pictures folder
+                with open((upload_path), 'wb') as f:
+                    f.write(user_pfp_upload.getvalue())
 
-            # Updates profile picture filepath key in accounts.json
-            accounts_read = open("accounts.json", 'r')
-            data3 = json.load(accounts_read)
-            with open("accounts.json", 'w') as accounts_write:
-                data3[st.session_state["username"]]["profile picture filepath"] = upload_path 
-                json.dump(data3, accounts_write, indent=4)
-                            
-            # Apply profile picture by rerunning script
-            if st.button("Apply"):
-                st.rerun()
+                # Updates profile picture filepath key in accounts.json
+                accounts_read = open("accounts.json", 'r')
+                data3 = json.load(accounts_read)
+                with open("accounts.json", 'w') as accounts_write:
+                    data3[st.session_state["username"]]["profile picture filepath"] = upload_path 
+                    json.dump(data3, accounts_write, indent=4)
+                                
+                # Apply profile picture by rerunning script
+                if st.button("Apply"):
+                    st.rerun()
             
         # Sets admin flag for easier debuggin if correct key is entered
         if st.text_input("Beta tester keys go here:") == admin_key:
@@ -318,11 +323,6 @@ st.session_state[f"user_history{selected_chat}"].append(query)
 with st.chat_message("user", avatar = st.session_state["pfp_filepath"]):
     st.write(query)
 
-# Prints degbug info if admin flair is active
-if admin == True:
-    st.write(st.session_state[f"user_history{selected_chat}"])
-    st.write(st.session_state[f"assistant_history{selected_chat}"])
-
 # Set chat history of ChatGPT input
 if len(st.session_state[f"user_history{selected_chat}"]) > 1: 
     chat_history = st.session_state[f"user_history{selected_chat}"][-1] + st.session_state[f"assistant_history{selected_chat}"][-1]
@@ -346,32 +346,45 @@ def filtering(response):
 for i in range(response_num):
     filtered.append(filtering(str(database_response[i])))
 
-# Gives ChatGPT api input
-messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. 
-             It is ok if you cannot answer a question with the data given, but DO NOT make up answers when the information was not given to you in the context.
-             Here is the user question: {str(query)} 
-             Here is some potentially relevant information, but not all of it will be usefull. Generally, the infromation that comes earlier will be more relevant: {str(filtered)} 
-             Include only the parts that are relevant to the user question. DO NOT answer questions that aren't about Proctor."""}]
-
-# Prints API input for easier debugging
-if admin == True:
-    st.write(str(messages))
-
 # Sets ChatGPT version
 if gpt_version == 3.5:
     gpt_version = "gpt-3.5-turbo-0125"
 elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
 
-# Gets/Prints ChatGPT api response
-with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png"): 
-    with st.spinner("Thinking..."):
-        chat = oclient.chat.completions.create(
-        model = gpt_version, messages=messages, max_tokens=gpt_tokens
-        )
-        reply = chat.choices[0].message.content
-        st.write(reply) # Prints ChatGPT response
+# Gives ChatGPT api input from user, results from database, and context
+messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. 
+             It is ok if you cannot answer a question with the data given, but DO NOT make up answers when the information was not given to you in the context.
+             Include only the parts of the context that are relevant to the user question. DO NOT answer questions that aren't about Proctor."""}, 
+             {"role": "user", "content": f"""Here is some potentially relevant information, but not all of it will be usefull. 
+             Generally, the infromation that comes earlier will be more relevant: {str(filtered)}. Here is the user query: {str(query)}"""}]
 
+# Gets ChatGPT api response
+streaming_reply = oclient.chat.completions.create(
+    model = gpt_version, 
+    messages = messages, 
+    max_tokens = gpt_tokens, 
+    stream = True
+)
+
+# Prints ChatGPT api response
+with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png").empty():
+    reply = st.write_stream(streaming_reply) # Prints ChatGPT response
+
+# Prints additional information easier debugging
+if admin == True:
+    st.write("Time elapsed:", time.time()- start)
+    st.write("Model used:", gpt_version)
+
+    # Finds and returns number of tokens in input/output
+    encoding = tiktoken.encoding_for_model(gpt_version)
+    tokens_input = len(encoding.encode(str(messages)))
+    tokens_output = len(encoding.encode(str(reply)))
+    st.write("Input tokens:", tokens_input - 24)
+    st.write("Output tokens:", tokens_output)
+
+    st.write(str(filtered)) # Returns databse output
+    
 # Logs ChatGPT response in history
 st.session_state[f"assistant_history{selected_chat}"].append(reply)
 
@@ -385,10 +398,6 @@ if username != "Guest" and  username != "test":
 
     with open("accounts.json", 'w') as accounts_file:
         json.dump(data, accounts_file, indent=4)
-
-# Logs chat in history section of account file
-if admin == True:
-    st.write(data[username]['chat history'][str(selected_chat)])
 
 # Updates logs
 if username != "test" and admin == False:

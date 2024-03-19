@@ -3,3 +3,4 @@ qdrant_client
 python-dotenv
 streamlit
 extra_streamlit_components
+tiktoken
