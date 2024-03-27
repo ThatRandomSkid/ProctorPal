@@ -13,11 +13,10 @@ __pycache__/
 .vscode
 settings.json
 launch.json
-Inadequate_Responses.txt
-Accounts.json
-Logs.txt
+inadequate_responses.txt
+accounts.json
+logs.txt
 .env
-Hidden.py
 .DS_Store
 .Python
 build/

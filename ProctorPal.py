@@ -8,20 +8,23 @@ import json
 import extra_streamlit_components as stx
 import tiktoken
 
-# Starts timer
-start = time.time()
+# Starts timer for code
+code_time = time.time()
 
 # Editable settings
 gpt_version = 3.5
 gpt_tokens = 512
+gpt_temperature = 1
 response_num = 7
+
 
 # Gets settings from settings.json file
 settings_path = os.path.expanduser("~/ProctorPal/settings.json")
 with open(settings_path, 'r') as f:
-    d = json.load(f)
-    database_ip = d.get("database_ip")
-    database_name = d.get("database_name")
+    settings = json.load(f)
+    database_ip = settings.get("database_ip")
+    database_name = settings.get("database_name")
+    site_title = settings.get("site_title")
 
 # Import hidden data from .env
 load_dotenv()
@@ -59,6 +62,10 @@ if "clear" not in st.session_state:
     st.session_state["clear"] = 0
 if "pfp_filepath" not in st.session_state:
     st.session_state["pfp_filepath"] = "null"
+if "number_of_chats" not in st.session_state:
+    st.session_state["number_of_chats"] = 1
+if "selected_chat_name" not in st.session_state:
+    st.session_state["selected_chat_name"] = ''
 new_password2 = False
 selected_chat = 1
 accounts_read = open("accounts.json", 'r')
@@ -67,8 +74,9 @@ about_hight = 12
 
 
 
+
 # Webage deisgn/setup
-st.set_page_config(page_title='ProctorPal', page_icon = "./profile_pictures/ProctorPal.png")
+st.set_page_config(page_title = site_title, page_icon = "./profile_pictures/ProctorPal.png")
 st.title("ProctorPal (beta)")
 one, two, three, four, five = st.sidebar.columns(5)
 
@@ -112,10 +120,10 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
 
         if st.session_state["username"] != '' and st.session_state["password"] != '':
             accounts_read = open("accounts.json", 'r')
-            data2 = json.load(accounts_read)
+            data = json.load(accounts_read)
             with open("accounts.json", 'w') as accounts_write:
                 data[st.session_state["username"]]["uses cookies"] = st.session_state["use_cookies"] # Updates uses cookies flag accounts.json
-                json.dump(data2, accounts_write, indent=4)
+                json.dump(data, accounts_write, indent=4)
 
         # Deletes cookie if use_cookies is set to false
         if st.session_state["use_cookies"] == False and cookie_pass != None and cookie_user != None: 
@@ -150,22 +158,21 @@ if st.session_state["user"] == '' and st.session_state["create_account"] == Fals
         else:
             st.sidebar.warning("Username or password are incorrect.")
 
-# Button allowing user to create an account if they don't already have one
-if st.session_state["create_account"] == False:
-    for i in range(2):
-        st.sidebar.write("")
-    st.sidebar.subheader("Sign Up")
-    st.sidebar.write("Don't have an account? Create one here:")
-    if st.sidebar.button("Create account"):
-        st.session_state["create_account"] = True
-        if st.session_state["user"] == '':
+    # Button allowing user to create an account if they don't already have one
+    if st.session_state["create_account"] == False:
+        for i in range(2):
+            st.sidebar.write("")
+        st.sidebar.subheader("Sign Up")
+        st.sidebar.write("Don't have an account? Create one here:")
+        if st.sidebar.button("Create account"):
+            st.session_state["create_account"] = True
             st.rerun()
 
 # Account create
 if st.session_state["create_account"] == True and st.session_state["user"] == '':
     st.sidebar.subheader("Create Account")
     new_username = st.sidebar.text_input("Username:")
-    new_password = st.sidebar.text_input("password:", type="password")
+    new_password = st.sidebar.text_input("Password:", type="password")
     new_password2 = st.sidebar.text_input("Re-enter password:", type="password")
     st.session_state["use_cookies"] = st.sidebar.checkbox("Keep me signed in (uses cookies)", value=True)
 
@@ -177,8 +184,11 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
 
     elif new_password != "" and new_password2 != "" and new_username != "":  
         if st.sidebar.button("Create account"):
-            data.update({new_username: {'username': new_username, 'password': new_password, 'number of chats': 1, 'uses cookies' : st.session_state["use_cookies"], "profile picture filepath" : 'null', 'chat history' : {'1':{"user_history": [],"assistant_history": []}}}})
-            open("accounts.json", 'w').write(json.dumps(data, indent=4))
+            with open("accounts.json", 'r') as accounts_read:
+                data = json.load(accounts_read)
+                data.update({new_username: {'username': new_username, 'password': new_password, 'uses cookies': st.session_state["use_cookies"], "profile picture filepath": 'null', 'number of chats': 1, 'chat history': {'1':{"user_history": [],"assistant_history": []}}}})
+                with open("accounts.json", 'w') as accounts_file:
+                    json.dump(data, accounts_file, indent=4)
 
             # Login
             st.session_state["username"] = new_username
@@ -186,15 +196,14 @@ if st.session_state["create_account"] == True and st.session_state["user"] == ''
             st.session_state["create_account"] = None
             st.rerun()
 
-# Login button to get back from account creation
-if st.session_state["create_account"] == True:
-    for i in range(2):
-        st.sidebar.write("")
-    st.sidebar.subheader("Login")
-    st.sidebar.write("Have an account? Login here:")
-    if st.sidebar.button("Login"):
-        st.session_state["create_account"] = False
-        if st.session_state["user"] == '':
+    # Login button to get back from account creation
+    if st.session_state["create_account"] == True:
+        for i in range(2):
+            st.sidebar.write("")
+        st.sidebar.subheader("Login")
+        st.sidebar.write("Have an account? Login here:")
+        if st.sidebar.button("Login"):
+            st.session_state["create_account"] = False
             st.rerun()
 
 # Logged in display
@@ -206,15 +215,11 @@ if st.session_state["user"] != '':
         with open("accounts.json", 'r') as accounts_read:
             data4 = json.load(accounts_read)
             st.session_state["pfp_filepath"] = os.path.expanduser(data4[username]["profile picture filepath"])
-    else:
+    elif st.session_state["pfp_filepath"] != "./profile_pictures/Guest.jpg":
         st.session_state["pfp_filepath"] = None
 
     # Informs user of login status
     st.sidebar.subheader(f"Currently logged in as {username}.")
-
-    # Sets a welecome message
-    if st.session_state["user"] != "Guest":
-        welcome_message = f"Welcome, {username}!"
 
     # Account settings
     with st.sidebar.popover("Account Settings"):
@@ -222,7 +227,7 @@ if st.session_state["user"] != '':
         # User profile picture upload
         if st.session_state["user"] != "Guest":
             user_pfp_upload = st.file_uploader("Upload image for custom profile picture:", type=["png", "jpg", "jpeg"])
-            st.write("(Image must be in landscape orientation or it will appear upside down)")
+            st.write("(Image must be in landscape orientation \n or it will appear upside down)")
             if user_pfp_upload != None:
 
                 # Sets file path of image
@@ -247,9 +252,9 @@ if st.session_state["user"] != '':
         # Sets admin flag for easier debuggin if correct key is entered
         if st.text_input("Beta tester keys go here:") == admin_key:
             admin = True
-
-    # Log out button
-    if st.sidebar.button("Log out"):
+    
+    # Button to log out
+    if st.sidebar.button("Logout"):
         st.session_state["user"] = ''
         st.session_state["username"] = ''
         st.session_state["password"] = ''
@@ -258,23 +263,63 @@ if st.session_state["user"] != '':
         st.session_state["cookies_active"] = False
         st.session_state["clear"] += 1
         st.rerun()
-    
-    # Creates session states for historic chats
-    if username != "Guest" and st.session_state["user"] != "":
-        for i in range(1, chats+1):
-            if f"user_history{i}" not in st.session_state:
-                st.session_state[f"user_history{i}"] = data[username]['chat history'][str(i)]['user_history']
-            if f"assistant_history{i}" not in st.session_state:
-                st.session_state[f"assistant_history{i}"] = data[username]['chat history'][str(i)]['assistant_history']
-        
-    # Prints chat
-    for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
-        with st.chat_message("user", avatar = st.session_state["pfp_filepath"]):
-            st.write(st.session_state[f"user_history{selected_chat}"][i])
-        if i < len(st.session_state[f"assistant_history{selected_chat}"]):
-                with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png"):
-                    st.write(st.session_state[f"assistant_history{selected_chat}"][i])
 
+    # Chat managmenet
+    if st.session_state["user"] != "Guest":
+        for i in range(2):
+            st.sidebar.write('')
+        st.sidebar.subheader("Chats")
+        # Loads prior conversations
+        with open("accounts.json", 'r') as accounts_read:
+            data = json.load(accounts_read)
+            st.session_state["number_of_chats"] = data[st.session_state["user"]]["number of chats"]
+            chat_names = list(reversed((data[st.session_state["user"]]["chat history"].keys())))
+
+        # Button allowing user to create new chats
+        if st.sidebar.button("Create new chat"):
+            if len(chat_names) < 19:
+                with open("accounts.json", 'r') as accounts_read:
+                    data = json.load(accounts_read)
+                    data[st.session_state["user"]]["number of chats"] = len(list(chat_names)) + 1 # Updates uses number of chats flag accounts.json
+                    data[st.session_state["user"]]["chat history"].update({"Chat_" + str(len(list(chat_names)) + 1): {"user_history": [],"assistant_history": []}}) # Creates new section for chat in accounts.json
+                    with open("accounts.json", 'w') as accounts_write:
+                        json.dump(data, accounts_write, indent=4)
+                    st.rerun()
+            else:
+                st.sidebar.warning("You can only have up to 20 chats")
+                
+        # Chat selection
+        selected_chat_name = st.sidebar.selectbox("Chat History", (list(chat_names)))
+        st.session_state["selected_chat_name"] = selected_chat_name 
+        selected_chat = chat_names.index(st.session_state["selected_chat_name"]) + 1 # Get position of the output in the list of chats
+
+        # Creates session states for active chat
+        if f"user_history{selected_chat}" not in st.session_state:
+            st.session_state[f"user_history{selected_chat}"] = data[st.session_state["user"]]['chat history'][selected_chat_name]['user_history']
+        if f"assistant_history{selected_chat}" not in st.session_state:
+            st.session_state[f"assistant_history{selected_chat}"] = data[st.session_state["user"]]['chat history'][selected_chat_name]['assistant_history']
+            
+        # Prints chat
+        for i in range(len(st.session_state[f"user_history{selected_chat}"])): 
+            with st.chat_message("user", avatar = st.session_state["pfp_filepath"]):
+                st.write(st.session_state[f"user_history{selected_chat}"][i])
+            if i < len(st.session_state[f"assistant_history{selected_chat}"]):
+                    with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png"):
+                        st.write(st.session_state[f"assistant_history{selected_chat}"][i])
+
+    # Button to restart Streamlit for easier debugging
+    if admin == True: 
+        if st.sidebar.button("Restart"):
+            st.rerun()
+
+    # Button allowing user to log inadaquate responses 
+    if len(st.session_state[f"assistant_history{selected_chat}"]) > 0:
+        for i in range(2): 
+            st.sidebar.write("")
+        if st.sidebar.button("Previous reponse was inadaquate"):
+            with open("poor_responses.txt", "a") as p:
+                p.write("\n\n" + st.session_state["username"] + ": " + st.session_state[f"user_history{selected_chat}"][-1] + "\n" + "ProctorPal: " + st.session_state[f"assistant_history{selected_chat}"][-1])
+    
 # Provides link to GitHub in the sidebar
 for i in range(about_hight):
     st.sidebar.write('')
@@ -307,6 +352,7 @@ while query ==  None:
 if st.session_state["user"] == '':
     st.session_state["username"] = "Guest"
     st.session_state["user"] = "Guest"
+    st.session_state["pfp_filepath"] = "./profile_pictures/Guest.jpg" # Sets guest pfp
     # Creates session states for historic chats
     if "user_history1" not in st.session_state:
         st.session_state["user_history1"] = []
@@ -349,8 +395,12 @@ for i in range(response_num):
 # Sets ChatGPT version
 if gpt_version == 3.5:
     gpt_version = "gpt-3.5-turbo-0125"
+    input_cost = 0.00005
+    output_cost = 0.00015
 elif gpt_version == 4:
     gpt_version = "gpt-4-turbo-preview"
+    input_cost = 0.001
+    output_cost = 0.003
 
 # Gives ChatGPT api input from user, results from database, and context
 messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. 
@@ -359,11 +409,16 @@ messages = [{"role": "system", "content": f"""You are an assistant designed to a
              {"role": "user", "content": f"""Here is some potentially relevant information, but not all of it will be usefull. 
              Generally, the infromation that comes earlier will be more relevant: {str(filtered)}. Here is the user query: {str(query)}"""}]
 
+# Stops timer for code and starts timer for generation
+code_time = time.time()- code_time
+gerneration_time = time.time()
+
 # Gets ChatGPT api response
 streaming_reply = oclient.chat.completions.create(
     model = gpt_version, 
     messages = messages, 
     max_tokens = gpt_tokens, 
+    temperature = gpt_temperature,
     stream = True
 )
 
@@ -371,19 +426,25 @@ streaming_reply = oclient.chat.completions.create(
 with st.chat_message("assistant", avatar = "./profile_pictures/ProctorPal.png").empty():
     reply = st.write_stream(streaming_reply) # Prints ChatGPT response
 
+# Ends generation timer
+generation_time = time.time()- gerneration_time
+
 # Prints additional information easier debugging
 if admin == True:
-    st.write("Time elapsed:", time.time()- start)
+    st.write("Time (code):", code_time)
+    st.write("Time (generation):", generation_time)
+    st.write("Time (total):", code_time + generation_time)
     st.write("Model used:", gpt_version)
 
     # Finds and returns number of tokens in input/output
     encoding = tiktoken.encoding_for_model(gpt_version)
-    tokens_input = len(encoding.encode(str(messages)))
+    tokens_input = len(encoding.encode(str(messages))) - 24
     tokens_output = len(encoding.encode(str(reply)))
-    st.write("Input tokens:", tokens_input - 24)
+    st.write("Input tokens:", tokens_input)
     st.write("Output tokens:", tokens_output)
 
-    st.write(str(filtered)) # Returns databse output
+    st.write(f"Price: {(tokens_input * input_cost) + (tokens_output * output_cost)}¢") 
+    st.write("Database output:", str(filtered)) # Returns databse output
     
 # Logs ChatGPT response in history
 st.session_state[f"assistant_history{selected_chat}"].append(reply)
@@ -393,8 +454,8 @@ if username != "Guest" and  username != "test":
     user_history = st.session_state[f"user_history{selected_chat}"][-1]
     assistant_history = st.session_state[f"assistant_history{selected_chat}"][-1]
 
-    data[username]['chat history'][str(selected_chat)]['user_history'].append(user_history)
-    data[username]['chat history'][str(selected_chat)]['assistant_history'].append(assistant_history)
+    data[username]['chat history'][selected_chat_name]['user_history'].append(user_history)
+    data[username]['chat history'][selected_chat_name]['assistant_history'].append(assistant_history)
 
     with open("accounts.json", 'w') as accounts_file:
         json.dump(data, accounts_file, indent=4)
