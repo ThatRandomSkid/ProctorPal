@@ -12,7 +12,7 @@ import tiktoken
 code_time = time.time()
 
 # Editable settings
-gpt_version = 3.5
+gpt_version = "4o-mini"
 gpt_tokens = 512
 gpt_temperature = 1
 response_num = 7
@@ -393,14 +393,22 @@ for i in range(response_num):
     filtered.append(filtering(str(database_response[i])))
 
 # Sets ChatGPT version
-if gpt_version == 3.5:
+if gpt_version == "3.5":
     gpt_version = "gpt-3.5-turbo-0125"
     input_cost = 0.00005
     output_cost = 0.00015
-elif gpt_version == 4:
+elif gpt_version == "4":
     gpt_version = "gpt-4-turbo-preview"
     input_cost = 0.001
     output_cost = 0.003
+elif gpt_version == "4o":
+    gpt_version = "gpt-4o"
+    input_cost = 0.0005
+    output_cost = 0.0015
+elif gpt_version == "4o-mini":
+    gpt_version = "gpt-4o-mini"
+    input_cost = 0.000015
+    output_cost = 0.000045
 
 # Gives ChatGPT api input from user, results from database, and context
 messages = [{"role": "system", "content": f"""You are an assistant designed to answer questions about Proctor Academy. 
